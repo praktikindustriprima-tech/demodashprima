@@ -19,9 +19,9 @@ class OltController extends Controller
      */
     public function index()
     {
-        $olts = Olt::all(['id', 'name', 'host']);
         return Inertia::render('olt/OnuScan', [
-            'olts' => $olts
+            'olts'      => Olt::all(['id', 'name', 'host']),
+            'templates' => \App\Models\OltTemplate::all(),
         ]);
     }
 
@@ -30,9 +30,9 @@ class OltController extends Controller
      */
     public function settings()
     {
-        $olts = Olt::all();
         return Inertia::render('olt/Settings', [
-            'olts' => $olts,
+            'olts'      => Olt::all(),
+            'templates' => \App\Models\OltTemplate::all(),
         ]);
     }
 
@@ -111,7 +111,17 @@ class OltController extends Controller
     {
         $olt = null;
 
-        if ($request->olt_id) {
+        if ($request->template_id) {
+            $template = \App\Models\OltTemplate::findOrFail($request->template_id);
+            $olt = Olt::firstOrNew(['host' => $template->host]);
+            $olt->name = $olt->name ?: $template->name;
+            $olt->host = $template->host;
+            $olt->port = $template->port;
+            $olt->username = $template->username;
+            $olt->password = $template->password;
+            $olt->olt_type = 'ZTE';
+            $olt->save();
+        } elseif ($request->olt_id) {
             $olt = Olt::find($request->olt_id);
         } elseif ($request->host) {
             // Quick scan using provided credentials

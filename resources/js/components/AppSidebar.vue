@@ -19,11 +19,6 @@ import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
         title: 'ONU Scan',
         href: '/olt/onu-scan',
         icon: Cpu,

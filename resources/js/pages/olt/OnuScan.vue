@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useSessionStorage } from '@vueuse/core';
 import { Head, useForm } from '@inertiajs/vue3';
-import { MonitorPlay, X } from '@lucide/vue';
+import { MonitorPlay, X, Zap } from '@lucide/vue';
 import axios from 'axios';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { toast } from 'vue-sonner';
 import ConnectDialog from '@/components/olt/ConnectDialog.vue';
 import BannerModal from '@/components/olt/BannerModal.vue';
@@ -13,9 +15,12 @@ import DiagnosticsPanel from '@/components/olt/DiagnosticsPanel.vue';
 import OnuTable from '@/components/olt/OnuTable.vue';
 
 interface OltOption { id: number; name: string; host: string; }
+interface Template { id: number; name: string; host: string; port: number; username: string; is_default: boolean; }
 interface Onu { olt_index: string; model: string; sn: string; pw: string; }
 
-defineProps<{ olts: OltOption[] }>();
+const props = defineProps<{ olts: OltOption[]; templates: Template[] }>();
+
+const defaultTemplate = computed(() => props.templates.find(t => t.is_default) ?? null);
 
 const isModalOpen = ref(false);
 const isBannerModalOpen = ref(false);
@@ -26,15 +31,28 @@ const isScanning = ref(false);
 const isFetchingBanner = ref(false);
 const isRunningCommand = ref(false);
 const consoleOutput = ref('');
+const isQuickConnecting = ref(false);
+
+const connectionState = useSessionStorage('olt-connection-state', {
+    activeOltId: null as number | null,
+    host: '', port: 23, username: '', password: '',
+    isConnected: false,
+});
+
+onMounted(async () => {
+    if (connectionState.value.isConnected) {
+        scanForm.host = connectionState.value.host;
+        scanForm.port = connectionState.value.port;
+        scanForm.username = connectionState.value.username;
+        scanForm.password = connectionState.value.password;
+        await doLogin();
+    }
+});
 
 const scanForm = useForm({
     id: null as number | null,
     name: 'Quick Scan OLT',
-    host: '',
-    port: 23,
-    username: 'admin',
-    password: '',
-    olt_type: 'ZTE',
+    host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE',
 });
 
 const fetchBanner = async (data: { host: string; port: number; username: string; password: string }) => {
@@ -42,10 +60,8 @@ const fetchBanner = async (data: { host: string; port: number; username: string;
         toast.error('Please fill in all connection details');
         return;
     }
-    scanForm.host = data.host;
-    scanForm.port = data.port;
-    scanForm.username = data.username;
-    scanForm.password = data.password;
+    scanForm.host = data.host; scanForm.port = data.port;
+    scanForm.username = data.username; scanForm.password = data.password;
 
     isFetchingBanner.value = true;
     try {
@@ -64,8 +80,7 @@ const fetchBanner = async (data: { host: string; port: number; username: string;
     }
 };
 
-const proceedToLogin = async () => {
-    isBannerModalOpen.value = false;
+const doLogin = async () => {
     isScanning.value = true;
     try {
         const saveResponse = await axios.post('/olt/settings', scanForm.data());
@@ -73,14 +88,67 @@ const proceedToLogin = async () => {
         if (scanResponse.data.status === 'success') {
             onus.value = scanResponse.data.data;
             activeOltId.value = scanResponse.data.olt_id;
+
+            // Persist state
+            connectionState.value = {
+                activeOltId: scanResponse.data.olt_id,
+                host: scanForm.host, port: scanForm.port,
+                username: scanForm.username, password: scanForm.password,
+                isConnected: true,
+            };
+
             toast.success('Login successful and ONU list updated');
         } else {
-            toast.error(scanResponse.data.message || 'Login failed after banner');
+            toast.error(scanResponse.data.message || 'Login failed');
         }
     } catch (error: any) {
         toast.error(error.response?.data?.message || 'Handshake failed');
     } finally {
         isScanning.value = false;
+    }
+};
+
+const disconnect = () => {
+    activeOltId.value = null; onus.value = []; consoleOutput.value = ''; scanForm.reset();
+    connectionState.value = { activeOltId: null, host: '', port: 23, username: '', password: '', isConnected: false };
+};
+
+const quickConnect = async () => {
+    if (!defaultTemplate.value) {
+        toast.error('No default template set. Go to Settings to set one.');
+        return;
+    }
+    const t = defaultTemplate.value;
+    // Quick connect skips banner — go straight to login
+    scanForm.host = t.host; scanForm.port = t.port;
+    scanForm.username = t.username; scanForm.password = ''; // password from DB via template
+
+    isQuickConnecting.value = true;
+    isScanning.value = true;
+    try {
+        // Use template's saved password via a dedicated scan call
+        const scanResponse = await axios.post('/olt/scan', { template_id: t.id });
+        if (scanResponse.data.status === 'success') {
+            onus.value = scanResponse.data.data;
+            activeOltId.value = scanResponse.data.olt_id;
+            
+            // Persist state
+            connectionState.value = {
+                activeOltId: scanResponse.data.olt_id,
+                host: t.host, port: t.port,
+                username: t.username, password: t.password,
+                isConnected: true,
+            };
+
+            toast.success(`Quick connected via "${t.name}"`);
+        } else {
+            toast.error(scanResponse.data.message || 'Quick connect failed');
+        }
+    } catch (error: any) {
+        toast.error(error.response?.data?.message || 'Quick connect failed');
+    } finally {
+        isScanning.value = false;
+        isQuickConnecting.value = false;
     }
 };
 
@@ -99,7 +167,7 @@ const runDiagnostic = async (diag: { label: string; command: string; action: str
             toast.success(`${diag.label} command executed`);
         } else {
             consoleOutput.value += `Error: ${response.data.message}`;
-            toast.error(response.data.message || 'Failed to execute command');
+            toast.error(response.data.message || 'Failed');
         }
     } catch (error: any) {
         const msg = error.response?.data?.message || 'Failed to connect to OLT';
@@ -108,13 +176,6 @@ const runDiagnostic = async (diag: { label: string; command: string; action: str
     } finally {
         isRunningCommand.value = false;
     }
-};
-
-const disconnect = () => {
-    activeOltId.value = null;
-    onus.value = [];
-    consoleOutput.value = '';
-    scanForm.reset();
 };
 
 defineOptions({ layout: AppLayout });
@@ -136,12 +197,30 @@ defineOptions({ layout: AppLayout });
                 </div>
             </div>
 
-            <ConnectDialog
-                v-model:open="isModalOpen"
-                :is-scanning="isScanning"
-                :is-fetching-banner="isFetchingBanner"
-                @connect="fetchBanner"
-            />
+            <div class="flex gap-2">
+                <!-- Quick Connect -->
+                <Button
+                    v-if="defaultTemplate"
+                    variant="outline"
+                    size="lg"
+                    class="h-12 px-6"
+                    :disabled="isScanning || isQuickConnecting"
+                    @click="quickConnect"
+                >
+                    <Spinner v-if="isQuickConnecting" class="mr-2" />
+                    <Zap v-else class="mr-2 h-5 w-5 text-yellow-500" />
+                    Quick Connect
+                </Button>
+
+                <!-- Scan Device -->
+                <ConnectDialog
+                    v-model:open="isModalOpen"
+                    :templates="templates"
+                    :is-scanning="isScanning"
+                    :is-fetching-banner="isFetchingBanner"
+                    @connect="fetchBanner"
+                />
+            </div>
 
             <BannerModal
                 v-model:open="isBannerModalOpen"

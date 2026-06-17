@@ -8,10 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { RefreshCw } from '@lucide/vue';
 
+interface Template {
+    id: number; name: string; host: string; port: number; username: string; password: string; is_default: boolean;
+}
+
 const props = defineProps<{
     open: boolean;
     isScanning: boolean;
     isFetchingBanner: boolean;
+    templates: Template[];
 }>();
 
 const emit = defineEmits<{
@@ -19,10 +24,17 @@ const emit = defineEmits<{
     'connect': [data: { host: string; port: number; username: string; password: string }];
 }>();
 
+const selectedTemplateId = ref<string>('manual');
 const host = ref('');
-const port = ref(23);
+const port = ref('23');
 const username = ref('admin');
 const password = ref('');
+
+watch(selectedTemplateId, (val) => {
+    if (val === 'manual') return;
+    const t = props.templates.find(t => t.id === Number(val));
+    if (t) { host.value = t.host; port.value = String(t.port); username.value = t.username; password.value = t.password; }
+});
 </script>
 
 <template>
@@ -37,9 +49,21 @@ const password = ref('');
         <DialogContent class="sm:max-w-[425px]">
             <DialogHeader>
                 <DialogTitle>Connect to OLT Device</DialogTitle>
-                <DialogDescription>Enter your OLT connection details to perform a scan.</DialogDescription>
+                <DialogDescription>Select a template or fill in manually.</DialogDescription>
             </DialogHeader>
             <div class="grid gap-4 py-4">
+                <div class="grid grid-cols-4 items-center gap-4">
+                    <Label class="text-right">Template</Label>
+                    <Select v-model="selectedTemplateId" class="col-span-3">
+                        <SelectTrigger class="col-span-3"><SelectValue placeholder="Manual input" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="manual">— Manual —</SelectItem>
+                            <SelectItem v-for="t in templates" :key="t.id" :value="String(t.id)">
+                                {{ t.name }} {{ t.is_default ? '★' : '' }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
                 <div class="grid grid-cols-4 items-center gap-4">
                     <Label class="text-right">IP</Label>
                     <Input v-model="host" placeholder="192.168.1.1" class="col-span-3" />
@@ -66,7 +90,7 @@ const password = ref('');
             </div>
             <DialogFooter>
                 <Button variant="outline" @click="emit('update:open', false)">Cancel</Button>
-                <Button @click="emit('connect', { host, port, username, password })" :disabled="isFetchingBanner">
+                <Button @click="emit('connect', { host, port: Number(port), username, password })" :disabled="isFetchingBanner">
                     <Spinner v-if="isFetchingBanner" class="mr-2" />
                     {{ isFetchingBanner ? 'Connecting...' : 'Connect' }}
                 </Button>
