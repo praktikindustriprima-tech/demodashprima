@@ -1,8 +1,22 @@
 <?php
 
+use App\Http\Controllers\OltController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::get('/', [OltController::class, 'index'])->name('home');
+
+Route::get('olt/onu-scan', [OltController::class, 'index'])->name('olt.onu-scan');
+Route::post('olt/scan', [OltController::class, 'scan'])->name('olt.scan');
+Route::post('olt/run-command', [OltController::class, 'runCommand'])->name('olt.run-command');
+
+Route::get('olt/history', [OltController::class, 'history'])->name('olt.history');
+Route::get('olt/history/export', [OltController::class, 'export'])->name('olt.history.export');
+
+Route::post('olt/get-banner', [OltController::class, 'getBanner'])->name('olt.get-banner');
+Route::get('olt/settings', [OltController::class, 'settings'])->name('olt.settings');
+
+Route::post('olt/settings', [OltController::class, 'saveSettings'])->name('olt.settings.save');
+Route::delete('olt/settings/{olt}', [OltController::class, 'destroyOlt'])->name('olt.settings.destroy');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');

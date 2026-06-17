@@ -18,12 +18,27 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+const isGuest = computed(() => !user.value);
+const displayUser = computed(() => user.value || { name: 'Guest', email: 'Please log in to save history' });
 const { isMobile, state } = useSidebar();
 </script>
 
 <template>
     <SidebarMenu>
-        <SidebarMenuItem>
+        <SidebarMenuItem v-if="isGuest">
+            <SidebarMenuButton as-child size="lg">
+                <Link href="/login" class="flex items-center gap-2">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+                        <LogOut class="h-4 w-4 rotate-180" />
+                    </div>
+                    <div class="grid flex-1 text-left text-sm leading-tight">
+                        <span class="truncate font-medium">Guest Mode</span>
+                        <span class="truncate text-xs text-muted-foreground">Click to Log In</span>
+                    </div>
+                </Link>
+            </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem v-else>
             <DropdownMenu>
                 <DropdownMenuTrigger as-child>
                     <SidebarMenuButton
@@ -31,7 +46,7 @@ const { isMobile, state } = useSidebar();
                         class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                         data-test="sidebar-menu-button"
                     >
-                        <UserInfo :user="user" />
+                        <UserInfo :user="displayUser" />
                         <ChevronsUpDown class="ml-auto size-4" />
                     </SidebarMenuButton>
                 </DropdownMenuTrigger>
@@ -47,7 +62,7 @@ const { isMobile, state } = useSidebar();
                     align="end"
                     :side-offset="4"
                 >
-                    <UserMenuContent :user="user" />
+                    <UserMenuContent :user="displayUser" />
                 </DropdownMenuContent>
             </DropdownMenu>
         </SidebarMenuItem>
