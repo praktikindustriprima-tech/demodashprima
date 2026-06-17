@@ -1,0 +1,76 @@
+<script setup lang="ts">
+import { ref, watch } from 'vue';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { RefreshCw } from '@lucide/vue';
+
+const props = defineProps<{
+    open: boolean;
+    isScanning: boolean;
+    isFetchingBanner: boolean;
+}>();
+
+const emit = defineEmits<{
+    'update:open': [value: boolean];
+    'connect': [data: { host: string; port: number; username: string; password: string }];
+}>();
+
+const host = ref('');
+const port = ref(23);
+const username = ref('admin');
+const password = ref('');
+</script>
+
+<template>
+    <Dialog :open="open" @update:open="emit('update:open', $event)">
+        <DialogTrigger as-child>
+            <Button size="lg" class="h-12 px-8">
+                <Spinner v-if="isScanning" class="mr-2" />
+                <RefreshCw v-else class="mr-2 h-5 w-5" />
+                {{ isScanning ? 'Scanning...' : 'Scan Device' }}
+            </Button>
+        </DialogTrigger>
+        <DialogContent class="sm:max-w-[425px]">
+            <DialogHeader>
+                <DialogTitle>Connect to OLT Device</DialogTitle>
+                <DialogDescription>Enter your OLT connection details to perform a scan.</DialogDescription>
+            </DialogHeader>
+            <div class="grid gap-4 py-4">
+                <div class="grid grid-cols-4 items-center gap-4">
+                    <Label class="text-right">IP</Label>
+                    <Input v-model="host" placeholder="192.168.1.1" class="col-span-3" />
+                </div>
+                <div class="grid grid-cols-4 items-center gap-4">
+                    <Label class="text-right">Port</Label>
+                    <Select v-model="port">
+                        <SelectTrigger class="col-span-3"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="23">23 (Telnet)</SelectItem>
+                            <SelectItem value="22">22 (SSH)</SelectItem>
+                            <SelectItem value="2323">2323</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div class="grid grid-cols-4 items-center gap-4">
+                    <Label class="text-right">Username</Label>
+                    <Input v-model="username" placeholder="admin" class="col-span-3" />
+                </div>
+                <div class="grid grid-cols-4 items-center gap-4">
+                    <Label class="text-right">Password</Label>
+                    <Input v-model="password" type="password" placeholder="••••••••" class="col-span-3" />
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" @click="emit('update:open', false)">Cancel</Button>
+                <Button @click="emit('connect', { host, port, username, password })" :disabled="isFetchingBanner">
+                    <Spinner v-if="isFetchingBanner" class="mr-2" />
+                    {{ isFetchingBanner ? 'Connecting...' : 'Connect' }}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+</template>
