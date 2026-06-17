@@ -1,71 +1,54 @@
-# Project Overview: Laravel Vue Starter Kit
+# Project Overview: OLT Management System (ZTE ZXA10 C300)
 
-A modern web application built with **Laravel 13**, **Vue 3**, **Inertia.js**, and **Tailwind CSS 4**. This project provides a robust foundation for building high-quality, production-ready applications with a focus on developer experience and performance.
+A specialized network automation and management platform built with **Laravel 13**, **Vue 3**, **Inertia.js**, and **Tailwind CSS 4**. The system is designed to automate manual CLI processes for **ZTE ZXA10 C300 (ZXAN)** OLTs into a "one-click" web interface.
 
-## Core Technologies
+## Core Technologies & Environment
 - **Backend:** Laravel 13, PHP 8.3
-- **Frontend:** Vue 3 (Composition API, TypeScript), Inertia.js
-- **Styling:** Tailwind CSS 4, Lucide Vue icons
-- **Authentication:** Laravel Fortify (Session-based), Passkeys (Chisel)
-- **Infrastructure:** Vite, Wayfinder (Routing), Bunny Fonts
+- **Frontend:** Vue 3 (Composition API), Inertia.js, Tailwind CSS 4
+- **Automation:** Telnet/SSH communication via `spanish-fork-city/laravel-telnet` (or `phpseclib`)
+- **Target Device:** ZTE ZXA10 C300 (ZXAN)
+- **Database:** SQLite (default) / MySQL
 
 ## Architecture
-- **Inertia.js Integration:** Seamlessly bridges Laravel and Vue, allowing for a monolithic-like development experience with a modern SPA frontend.
-- **Layout System:** Dynamic layout selection in `resources/js/app.ts` based on the page name (e.g., `AuthLayout`, `SettingsLayout`).
-- **Shared State:** Data like user info and sidebar state is shared globally via `HandleInertiaRequests` middleware.
-- **UI Components:** Built using `reka-ui` for headless primitives, styled with Tailwind 4 and the `cn` utility.
+- **Inertia.js Integration:** SPA-like frontend with a Laravel backend.
+- **Dynamic Layouts:** Managed in `resources/js/app.ts` (Auth, Settings, App layouts).
+- **Automation Flow:** Backend handles Telnet/SSH sequences, parses CLI output with regex, and returns structured JSON to the Vue frontend.
 
 ## Building and Running
 
 ### Prerequisites
-- PHP 8.3+
-- Node.js (Latest LTS recommended)
-- Composer
-- SQLite (or another supported database)
+- PHP 8.3+, Node.js (Latest LTS), Composer, SQLite.
 
-### Setup
-```bash
-composer setup
-```
-This command installs dependencies, generates the app key, runs migrations, and builds frontend assets.
+### Commands
+- **Setup:** `composer setup`
+- **Development:** `composer dev` (Starts server, queue, and Vite)
+- **Testing:** `composer test` (Includes PHPStan, Pint, and Pest)
 
-### Development
-```bash
-composer dev
-```
-Starts the local development server (Artisan), queue listener, and Vite dev server concurrently.
-
-### Testing
-```bash
-composer test
-```
-Runs the full suite of tests, including PHP linting (Pint), static analysis (PHPStan), and Pest tests.
+## Domain Knowledge: ZTE C300 CLI
+- **Authentication:** Requires `Username:` and `Password:`.
+- **Config Mode:** Enter via `con t` (configure terminal). Prompt: `ZXAN(config)#`.
+- **Scanning:** `show pon onu unconfigured` (short: `show pon onu u`).
+- **Parsing:** Use regex to extract OltIndex, Model, SN, and PW from the tabular CLI output.
+    - Pattern: `/(gpon-olt_\d+\/\d+\/\d+)\s+([\w\.\/A-Z\-]+)\s+([\w]+)\s+([\w]+)/`
 
 ## Development Conventions
 
-### Backend
-- **Controllers:** Grouped by feature (e.g., `app/Http/Controllers/Settings/`).
-- **Validation:** Use Form Requests for validation logic (e.g., `app/Http/Requests/Settings/`).
-- **Routing:** Standard routes in `routes/web.php`, settings-specific routes in `routes/settings.php`.
-- **Formatting:** Adheres to Laravel Pint standards (`composer lint`).
+### Backend (Laravel)
+- **Security:** OLT credentials **must** be encrypted in the database (`Crypt::encryptString()`). Never store plain text passwords.
+- **Reliability:** Strict `try-catch` blocks for socket communication. Handle timeouts and hangs gracefully.
+- **API Response:** Standard JSON format `{ status: "success", data: [...] }`.
 
-### Frontend
-- **Components:**
-    - UI primitives in `resources/js/components/ui/`.
-    - Feature-specific components in `resources/js/components/`.
-- **TypeScript:**
-    - Use `<script setup lang="ts">` for all Vue components.
-    - Define interfaces/types in `resources/js/types/`.
-    - Strict type checking enabled (`npm run types:check`).
-- **Styling:**
-    - Tailwind CSS 4 utility classes.
-    - Use the `cn()` utility for conditional class merging.
-    - Custom components leverage `class-variance-authority` (implied pattern).
-- **Layouts:** Nested layouts for complex sections (e.g., Settings) are defined in `app.ts`.
+### Frontend (Vue.js)
+- **Async UX:** Use `Axios` for commands. Show loading spinners/overlays during CLI operations (3-8s).
+- **Filtering:** Implement client-side search/filtering for SNs to reduce API calls.
+- **Loading:** Always provide visual feedback for background network tasks.
 
-### Quality & Standards
-- **PHP Linting:** `composer lint` (Pint)
-- **PHP Static Analysis:** `composer types:check` (PHPStan)
-- **Frontend Linting:** `npm run lint` (ESLint)
-- **Frontend Formatting:** `npm run format` (Prettier)
-- **Testing:** Pest for feature and unit tests. Every bug fix or new feature should be accompanied by a test.
+### Automation Rules
+- **No Hardcoding:** Never hardcode IPs or credentials in source files.
+- **Confirmation:** Do not automate `write memory` or `save` without explicit Admin confirmation.
+- **Rate Limiting:** Implement limits on Scan APIs to prevent OLT management module hangs.
+
+### Quality Standards
+- **Linter:** `composer lint` (Pint), `npm run lint` (ESLint)
+- **Static Analysis:** `composer types:check` (PHPStan)
+- **Verification:** Every automation sequence or bug fix must include a test case.
