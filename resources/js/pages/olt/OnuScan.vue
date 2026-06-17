@@ -187,7 +187,7 @@ defineOptions({ layout: AppLayout });
     <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div class="space-y-4 flex-1">
-                <Heading title="ONU Scan" description="Scan for unconfigured ONUs and run diagnostic commands on ZTE C300 OLT" />
+                <Heading title="ONU Scan" description="Scan for unconfigured ONUs and run diagnostic commands" />
                 <div v-if="activeOltId" class="flex items-center gap-3 text-sm text-emerald-600 font-medium">
                     <MonitorPlay class="h-4 w-4" />
                     Connected to: {{ scanForm.host }}
@@ -204,7 +204,7 @@ defineOptions({ layout: AppLayout });
                     variant="outline"
                     size="lg"
                     class="h-12 px-6"
-                    :disabled="isScanning || isQuickConnecting"
+                    :disabled="isScanning || isQuickConnecting || !!activeOltId"
                     @click="quickConnect"
                 >
                     <Spinner v-if="isQuickConnecting" class="mr-2" />
@@ -213,20 +213,22 @@ defineOptions({ layout: AppLayout });
                 </Button>
 
                 <!-- Scan Device -->
-                <ConnectDialog
-                    v-model:open="isModalOpen"
-                    :templates="templates"
-                    :is-scanning="isScanning"
-                    :is-fetching-banner="isFetchingBanner"
-                    @connect="fetchBanner"
-                />
+                <div :class="{ 'opacity-50 pointer-events-none': !!activeOltId }">
+                    <ConnectDialog
+                        v-model:open="isModalOpen"
+                        :templates="templates"
+                        :is-scanning="isScanning"
+                        :is-fetching-banner="isFetchingBanner"
+                        @connect="fetchBanner"
+                    />
+                </div>
             </div>
 
             <BannerModal
                 v-model:open="isBannerModalOpen"
                 :banner="capturedBanner"
                 :is-scanning="isScanning"
-                @login="proceedToLogin"
+                @login="doLogin"
             />
         </div>
 

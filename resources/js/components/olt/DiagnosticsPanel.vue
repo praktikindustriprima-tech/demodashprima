@@ -16,9 +16,7 @@ const emit = defineEmits<{
 
 const diagnostics = [
     { label: 'Show Card', command: 'show card', action: 'Check Card Status', icon: HardDrive },
-    { label: 'Show Version', command: 'show version-software', action: 'Check Version', icon: Info },
     { label: 'Show Processor', command: 'show processor', action: 'Check CPU', icon: Cpu },
-    { label: 'Show Memory', command: 'show memory', action: 'Check Memory', icon: Terminal },
     { label: 'Show Fan', command: 'show fan', action: 'Check Fan', icon: Wind },
     { label: 'Show Power', command: 'show power', action: 'Check Power', icon: Zap },
 ];
