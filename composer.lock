@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2a52d1d7bba8be031c54468aa4e4587c",
+    "content-hash": "82798f490303ea147ebf63b3efaa57cb",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -4121,6 +4121,49 @@
                 "source": "https://github.com/ramsey/uuid/tree/4.9.2"
             },
             "time": "2025-12-14T04:43:48+00:00"
+        },
+        {
+            "name": "spanish-fork-city/laravel-telnet",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Spanish-Fork-City/laravel-telnet.git",
+                "reference": "c2aa713fec62b60de10412762c55a8bf515e2c15"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Spanish-Fork-City/laravel-telnet/zipball/c2aa713fec62b60de10412762c55a8bf515e2c15",
+                "reference": "c2aa713fec62b60de10412762c55a8bf515e2c15",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.4"
+            },
+            "require-dev": {
+                "pestphp/pest": "5.x-dev"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "SpanishForkCity\\Telnet\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "LGPL-3.0-only"
+            ],
+            "authors": [
+                {
+                    "name": "Chuck Burgess",
+                    "email": "cburgess@spanishfork.gov"
+                }
+            ],
+            "description": "A client for writing/reading commands to a host over telnet.",
+            "support": {
+                "issues": "https://github.com/Spanish-Fork-City/laravel-telnet/issues",
+                "source": "https://github.com/Spanish-Fork-City/laravel-telnet/tree/v1.0.0"
+            },
+            "time": "2026-06-02T18:10:18+00:00"
         },
         {
             "name": "spomky-labs/cbor-php",
