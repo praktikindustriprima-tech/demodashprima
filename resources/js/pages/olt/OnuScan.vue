@@ -175,9 +175,12 @@ defineOptions({
             <div class="space-y-4 flex-1">
                 <Heading title="ONU Scan" description="Scan for unconfigured ONUs and run diagnostic commands on ZTE C300 OLT" />
                 
-                <div v-if="activeOltId" class="flex items-center gap-2 text-sm text-emerald-600 font-medium">
+                <div v-if="activeOltId" class="flex items-center gap-3 text-sm text-emerald-600 font-medium">
                     <MonitorPlay class="h-4 w-4" />
                     Connected to: {{ scanForm.host }}
+                    <Button variant="ghost" size="sm" class="text-red-500 hover:text-red-600 h-7 px-2" @click="activeOltId = null; onus = []; consoleOutput = ''; searchQuery = ''; scanForm.reset()">
+                        <X class="h-3 w-3 mr-1" /> Disconnect
+                    </Button>
                 </div>
             </div>
 
@@ -305,12 +308,11 @@ defineOptions({
                                 <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Model</th>
                                 <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Serial Number</th>
                                 <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Password</th>
-                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-if="filteredOnus.length === 0" class="border-b border-sidebar-border/70 transition-colors last:border-0 dark:border-sidebar-border">
-                                <td colspan="5" class="h-24 text-center align-middle">
+                                <td colspan="4" class="h-24 text-center align-middle">
                                     {{ isScanning ? 'Scanning for ONUs...' : 'No unconfigured ONUs found.' }}
                                 </td>
                             </tr>
@@ -319,9 +321,6 @@ defineOptions({
                                 <td class="p-4 align-middle">{{ onu.model }}</td>
                                 <td class="p-4 align-middle font-mono">{{ onu.sn }}</td>
                                 <td class="p-4 align-middle font-mono">{{ onu.pw }}</td>
-                                <td class="p-4 align-middle">
-                                    <Button variant="outline" size="sm">Register</Button>
-                                </td>
                             </tr>
                         </tbody>
                     </table>
