@@ -12,6 +12,7 @@ Route::post('olt/run-command', [OltController::class, 'runCommand'])->name('olt.
 
 Route::get('olt/history', [OltController::class, 'history'])->name('olt.history');
 Route::get('olt/history/export', [OltController::class, 'export'])->name('olt.history.export');
+Route::delete('olt/history', [OltController::class, 'clearHistory'])->name('olt.history.clear');
 
 Route::post('olt/templates', [OltTemplateController::class, 'store'])->name('olt.templates.store');
 Route::delete('olt/templates/{oltTemplate}', [OltTemplateController::class, 'destroy'])->name('olt.templates.destroy');

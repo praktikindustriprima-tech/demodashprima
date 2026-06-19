@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { History, FileSpreadsheet, Printer, Filter, ChevronLeft, ChevronRight } from '@lucide/vue';
+import { History, FileSpreadsheet, Printer, Filter, ChevronLeft, ChevronRight, Trash2 } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,12 @@ const props = defineProps<{
     filters: { filter?: string };
 }>();
 
-const selectedFilter = ref(props.filters.filter || 'all');
+const selectedFilter = ref(typeof props.filters.filter === 'string' ? props.filters.filter : 'all');
+
+const filterLabel = computed(() => {
+    const labels: Record<string, string> = { all: 'All History', daily: 'Today', monthly: 'This Month' };
+    return labels[selectedFilter.value] || selectedFilter.value;
+});
 
 watch(selectedFilter, (value) => {
     router.get('/olt/history', { filter: value === 'all' ? undefined : value }, {
@@ -56,6 +61,22 @@ const exportExcel = () => {
 
 const printHistory = () => {
     window.print();
+};
+
+const showClearConfirm = ref(false);
+const isClearing = ref(false);
+
+const clearHistory = () => {
+    isClearing.value = true;
+    router.delete('/olt/history', {
+        filter: selectedFilter.value === 'all' ? undefined : selectedFilter.value,
+    }, {
+        preserveState: true,
+        onFinish: () => {
+            isClearing.value = false;
+            showClearConfirm.value = false;
+        },
+    });
 };
 
 defineOptions({
@@ -77,6 +98,10 @@ defineOptions({
                 <Button variant="outline" @click="exportExcel">
                     <FileSpreadsheet class="mr-2 h-4 w-4" />
                     Export Excel
+                </Button>
+                <Button v-if="history.total > 0" variant="destructive" size="sm" @click="showClearConfirm = true">
+                    <Trash2 class="mr-2 h-4 w-4" />
+                    Clear History
                 </Button>
             </div>
         </div>
@@ -104,7 +129,7 @@ defineOptions({
         <!-- Print Header (Visible only when printing) -->
         <div class="hidden print:block mb-6 text-center">
             <h1 class="text-2xl font-bold">OLT Command History Report</h1>
-            <p class="text-sm text-gray-500">Generated on: {{ new Date().toLocaleString() }} | Filter: {{ selectedFilter }}</p>
+            <p class="text-sm text-gray-500">Generated on: {{ new Date().toLocaleString() }} | Filter: {{ filterLabel }}</p>
         </div>
 
         <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border overflow-hidden">
@@ -190,6 +215,28 @@ defineOptions({
                 </Link>
                 <span v-else><ChevronRight class="h-4 w-4" /></span>
             </Button>
+        </div>
+    </div>
+
+    <!-- Clear History Confirmation Dialog -->
+    <div v-if="showClearConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div class="rounded-xl bg-background p-6 shadow-lg w-full max-w-md">
+            <h3 class="text-lg font-semibold">Clear History</h3>
+            <p class="mt-2 text-sm text-muted-foreground">
+                Are you sure you want to clear
+                <template v-if="selectedFilter === 'all'">all history records</template>
+                <template v-else-if="selectedFilter === 'daily'">today's history records</template>
+                <template v-else>this month's history records</template>?
+                This action cannot be undone.
+            </p>
+            <div class="mt-4 flex justify-end gap-2">
+                <Button variant="outline" size="sm" @click="showClearConfirm = false" :disabled="isClearing">
+                    Cancel
+                </Button>
+                <Button variant="destructive" size="sm" @click="clearHistory" :disabled="isClearing">
+                    {{ isClearing ? 'Clearing...' : 'Clear' }}
+                </Button>
+            </div>
         </div>
     </div>
 </template>

@@ -281,4 +281,23 @@ class OltController extends Controller
 
         return response()->stream($callback, 200, $headers);
     }
+
+    /**
+     * Clear history records.
+     */
+    public function clearHistory(Request $request)
+    {
+        $query = OltHistory::query();
+
+        if ($request->filter === 'daily') {
+            $query->whereDate('created_at', now()->today());
+        } elseif ($request->filter === 'monthly') {
+            $query->whereMonth('created_at', now()->month)
+                  ->whereYear('created_at', now()->year);
+        }
+
+        $deleted = $query->delete();
+
+        return redirect()->back()->with('success', "Cleared {$deleted} history record(s).");
+    }
 }
