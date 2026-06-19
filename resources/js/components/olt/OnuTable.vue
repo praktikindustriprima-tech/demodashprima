@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { Search, Printer, FileDown, Loader2, Info } from '@lucide/vue';
+import { Search, Printer, FileDown, Loader2, Info, BookmarkPlus, Check } from '@lucide/vue';
 import { Radio } from '@lucide/vue';
 import axios from 'axios';
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
@@ -22,7 +23,19 @@ const props = defineProps<{
     isScanning: boolean;
     isConnected: boolean;
     oltId: number | null;
+    auditSession: { onus: Array<{ sn: string }> } | null;
+    selectedOnus: Set<string>;
 }>();
+
+const emit = defineEmits<{
+    'save-to-session': [onus: Onu[]];
+    'toggle-select': [sn: string];
+    'select-all': [];
+}>();
+
+const isSaved = (sn: string) => {
+    return props.auditSession?.onus.some(o => o.sn === sn) ?? false;
+};
 
 const searchQuery = ref('');
 const selectedOnu = ref<Onu | null>(null);
@@ -148,16 +161,23 @@ const printTable = () => {
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-sidebar-border/70 bg-muted/50 transition-colors dark:border-sidebar-border">
+                            <th v-if="auditSession" class="h-12 w-12 px-2">
+                                <Checkbox
+                                    :checked="selectedOnus.size === filtered.length && filtered.length > 0"
+                                    @update:checked="emit('select-all')"
+                                />
+                            </th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">OLT Index</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Model</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Serial Number</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Password</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Status</th>
                             <th class="h-12 w-12"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="filtered.length === 0" class="border-b border-sidebar-border/70 transition-colors last:border-0 dark:border-sidebar-border">
-                            <td colspan="5" class="h-24 text-center align-middle">
+                            <td :colspan="auditSession ? 7 : 6" class="h-24 text-center align-middle">
                                 <div v-if="isScanning" class="flex items-center justify-center gap-2 text-muted-foreground">
                                     <Loader2 class="h-4 w-4 animate-spin" />
                                     Scanning for ONUs...
@@ -166,10 +186,24 @@ const printTable = () => {
                             </td>
                         </tr>
                         <tr v-for="onu in filtered" :key="onu.sn" class="border-b border-sidebar-border/70 transition-colors hover:bg-muted/50 last:border-0 dark:border-sidebar-border">
+                            <td v-if="auditSession" class="p-4 align-middle">
+                                <Checkbox
+                                    :checked="selectedOnus.has(onu.sn)"
+                                    @update:checked="emit('toggle-select', onu.sn)"
+                                />
+                            </td>
                             <td class="p-4 align-middle">{{ onu.olt_index }}</td>
                             <td class="p-4 align-middle">{{ onu.model }}</td>
                             <td class="p-4 align-middle font-mono">{{ onu.sn }}</td>
                             <td class="p-4 align-middle font-mono">{{ onu.pw }}</td>
+                            <td class="p-4 align-middle">
+                                <span
+                                    v-if="isSaved(onu.sn)"
+                                    class="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300"
+                                >
+                                    <Check class="mr-1 h-3 w-3" /> Tersimpan
+                                </span>
+                            </td>
                             <td class="p-4 align-middle">
                                 <Button variant="ghost" size="sm" @click="showInfo(onu)">
                                     <Info class="h-4 w-4" />
@@ -179,6 +213,14 @@ const printTable = () => {
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <div v-if="auditSession && selectedOnus.size > 0" class="flex items-center justify-between border-t border-sidebar-border/70 bg-muted/30 px-4 py-3">
+            <span class="text-sm text-muted-foreground">{{ selectedOnus.size }} ONU dipilih</span>
+            <Button size="sm" @click="emit('save-to-session', props.onus.filter(o => selectedOnus.has(o.sn)))">
+                <BookmarkPlus class="mr-2 h-4 w-4" />
+                Simpan ke Sesi
+            </Button>
         </div>
 
         <Dialog v-model:open="isInfoOpen">

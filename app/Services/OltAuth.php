@@ -34,8 +34,12 @@ class OltAuth
 
         while (microtime(true) < $timeout) {
             $line = $this->client->getLine($matchesPrompt, false);
-            if ($line === false) break;
-            if ($matchesPrompt) break;
+            if ($line === false) {
+                break;
+            }
+            if ($matchesPrompt) {
+                break;
+            }
             $bannerLines[] = trim($line);
         }
 
@@ -83,7 +87,7 @@ class OltAuth
         } catch (\Exception $e) {
             Log::error('OLT connect: failed', ['error' => $e->getMessage()]);
             $this->disconnect();
-            throw new \Exception("OLT Handshake Failed: " . $e->getMessage());
+            throw new \Exception('OLT Handshake Failed: '.$e->getMessage());
         }
     }
 
@@ -96,6 +100,7 @@ class OltAuth
         Log::info('OLT command sent', ['command' => $command]);
         $response = $this->waitFor($prompt, $timeout);
         Log::info('OLT response received', ['length' => strlen($response)]);
+
         return $response;
     }
 
@@ -111,7 +116,9 @@ class OltAuth
             if ($line !== false) {
                 $buffer .= $line;
                 Log::debug('OLT waitFor', ['needle' => $needle, 'line' => rtrim($line)]);
-                if (str_contains($buffer, $needle)) return $buffer;
+                if (str_contains($buffer, $needle)) {
+                    return $buffer;
+                }
             }
             usleep(50000);
         }

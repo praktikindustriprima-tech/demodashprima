@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Olt;
 use App\Models\OltHistory;
+use App\Models\OltTemplate;
 use App\Services\OltCommand;
 use App\Services\OltService;
 use Illuminate\Http\Request;
@@ -21,8 +22,19 @@ class OltController extends Controller
     public function index()
     {
         return Inertia::render('olt/OnuScan', [
-            'olts'      => Olt::all(['id', 'name', 'host']),
-            'templates' => \App\Models\OltTemplate::all(),
+            'olts' => Olt::all(['id', 'name', 'host']),
+            'templates' => OltTemplate::all(),
+        ]);
+    }
+
+    /**
+     * Show the audit session page.
+     */
+    public function auditSession()
+    {
+        return Inertia::render('olt/AuditSession', [
+            'olts' => Olt::all(['id', 'name', 'host']),
+            'templates' => OltTemplate::all(),
         ]);
     }
 
@@ -32,8 +44,8 @@ class OltController extends Controller
     public function settings()
     {
         return Inertia::render('olt/Settings', [
-            'olts'      => Olt::all(),
-            'templates' => \App\Models\OltTemplate::all(),
+            'olts' => Olt::all(),
+            'templates' => OltTemplate::all(),
         ]);
     }
 
@@ -53,7 +65,7 @@ class OltController extends Controller
         ]);
 
         $data = $request->only(['name', 'host', 'port', 'username', 'olt_type']);
-        
+
         if ($request->password) {
             $data['password'] = $request->password;
         }
@@ -78,6 +90,7 @@ class OltController extends Controller
     public function destroyOlt(Olt $olt)
     {
         $olt->delete();
+
         return redirect()->back()->with('success', 'OLT deleted.');
     }
 
@@ -100,7 +113,7 @@ class OltController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to reach OLT: ' . $e->getMessage(),
+                'message' => 'Failed to reach OLT: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -113,7 +126,7 @@ class OltController extends Controller
         $olt = null;
 
         if ($request->template_id) {
-            $template = \App\Models\OltTemplate::findOrFail($request->template_id);
+            $template = OltTemplate::findOrFail($request->template_id);
             $olt = Olt::firstOrNew(['host' => $template->host]);
             $olt->name = $olt->name ?: $template->name;
             $olt->host = $template->host;
@@ -127,10 +140,10 @@ class OltController extends Controller
         } elseif ($request->host) {
             // Quick scan using provided credentials
             $olt = Olt::where('host', $request->host)->first();
-            
-            if (!$olt) {
+
+            if (! $olt) {
                 $olt = new Olt([
-                    'name' => 'Quick Scan (' . $request->host . ')',
+                    'name' => 'Quick Scan ('.$request->host.')',
                     'host' => $request->host,
                     'port' => $request->port ?? 23,
                     'username' => $request->username,
@@ -140,14 +153,14 @@ class OltController extends Controller
                 // We don't necessarily need to save it, but OltService needs an Olt model
                 // However, for history logging, it's better to save it
                 $olt->save();
-            } else if ($request->password) {
+            } elseif ($request->password) {
                 // Update password if provided in quick scan
                 $olt->password = $request->password;
                 $olt->save();
             }
         }
 
-        if (!$olt) {
+        if (! $olt) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'OLT configuration not found or provided.',
@@ -167,7 +180,7 @@ class OltController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to connect to OLT: ' . $e->getMessage(),
+                'message' => 'Failed to connect to OLT: '.$e->getMessage(),
             ], 500);
         } finally {
             $this->oltService->disconnect();
@@ -187,14 +200,14 @@ class OltController extends Controller
             $olt = Olt::where('host', $request->host)->first();
         }
 
-        if (!$olt) {
+        if (! $olt) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'No active OLT connection. Please connect first.',
             ], 400);
         }
 
-        if (!OltCommand::isValidCommand($request->command)) {
+        if (! OltCommand::isValidCommand($request->command)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Invalid command.',
@@ -211,7 +224,7 @@ class OltController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Command execution failed: ' . $e->getMessage(),
+                'message' => 'Command execution failed: '.$e->getMessage(),
             ], 500);
         } finally {
             $this->oltService->disconnect();
@@ -243,7 +256,7 @@ class OltController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to fetch ONU info: ' . $e->getMessage(),
+                'message' => 'Failed to fetch ONU info: '.$e->getMessage(),
             ], 500);
         } finally {
             $this->oltService->disconnect();
@@ -261,7 +274,7 @@ class OltController extends Controller
             $query->whereDate('created_at', now()->today());
         } elseif ($request->filter === 'monthly') {
             $query->whereMonth('created_at', now()->month)
-                  ->whereYear('created_at', now()->year);
+                ->whereYear('created_at', now()->year);
         }
 
         $history = $query->latest()->paginate(20)->withQueryString();
@@ -291,24 +304,24 @@ class OltController extends Controller
             $query->whereDate('created_at', now()->today());
         } elseif ($request->filter === 'monthly') {
             $query->whereMonth('created_at', now()->month)
-                  ->whereYear('created_at', now()->year);
+                ->whereYear('created_at', now()->year);
         }
 
         $history = $query->latest()->get();
 
-        $filename = "olt_history_" . ($request->filter ?? 'all') . "_" . date('Y-m-d') . ".csv";
-        
+        $filename = 'olt_history_'.($request->filter ?? 'all').'_'.date('Y-m-d').'.csv';
+
         $headers = [
-            "Content-type"        => "text/csv",
-            "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
+            'Content-type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=$filename",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
         ];
 
         $columns = ['Date', 'User', 'OLT', 'Action', 'Target SN', 'Command', 'Status'];
 
-        $callback = function() use($history, $columns) {
+        $callback = function () use ($history, $columns) {
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
 
@@ -341,7 +354,7 @@ class OltController extends Controller
             $query->whereDate('created_at', now()->today());
         } elseif ($request->filter === 'monthly') {
             $query->whereMonth('created_at', now()->month)
-                  ->whereYear('created_at', now()->year);
+                ->whereYear('created_at', now()->year);
         }
 
         $deleted = $query->delete();

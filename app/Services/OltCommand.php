@@ -88,6 +88,7 @@ class OltCommand
     public static function buildGetOnuInfoCommand(string $oltIndex): string
     {
         $commandIndex = str_replace('gpon-olt_', 'gpon-olt ', $oltIndex);
+
         return "show gpon onu info {$commandIndex}";
     }
 

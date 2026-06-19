@@ -33,11 +33,11 @@ class OltService
      */
     public function execute(Olt $olt, string $command, string $action, ?string $targetSn = null): string
     {
-        if (!OltCommand::isValidCommand($command)) {
-            throw new \Exception("Invalid or unsafe command");
+        if (! OltCommand::isValidCommand($command)) {
+            throw new \Exception('Invalid or unsafe command');
         }
 
-        if (!$this->auth->isConnected()) {
+        if (! $this->auth->isConnected()) {
             $this->auth->connect($olt);
         }
 

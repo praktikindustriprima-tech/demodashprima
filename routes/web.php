@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditSessionController;
 use App\Http\Controllers\OltController;
 use App\Http\Controllers\OltTemplateController;
 use Illuminate\Support\Facades\Route;
@@ -7,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [OltController::class, 'index'])->name('home');
 
 Route::get('olt/onu-scan', [OltController::class, 'index'])->name('olt.onu-scan');
+Route::get('olt/audit-session', [OltController::class, 'auditSession'])->name('olt.audit-session');
 Route::post('olt/scan', [OltController::class, 'scan'])->name('olt.scan');
 Route::post('olt/run-command', [OltController::class, 'runCommand'])->name('olt.run-command');
 
@@ -28,6 +30,15 @@ Route::post('olt/settings', [OltController::class, 'saveSettings'])->name('olt.s
 Route::delete('olt/settings/{olt}', [OltController::class, 'destroyOlt'])->name('olt.settings.destroy');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    // Audit Sessions
+    Route::get('audit/sessions', [AuditSessionController::class, 'index'])->name('audit.sessions.index');
+    Route::post('audit/sessions', [AuditSessionController::class, 'store'])->name('audit.sessions.store');
+    Route::get('audit/sessions/active', [AuditSessionController::class, 'active'])->name('audit.sessions.active');
+    Route::get('audit/sessions/{session}', [AuditSessionController::class, 'show'])->name('audit.sessions.show');
+    Route::post('audit/sessions/{session}/save', [AuditSessionController::class, 'saveOnus'])->name('audit.sessions.save');
+    Route::post('audit/sessions/{session}/complete', [AuditSessionController::class, 'complete'])->name('audit.sessions.complete');
+    Route::delete('audit/sessions/{session}', [AuditSessionController::class, 'destroy'])->name('audit.sessions.destroy');
+
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
 });
 

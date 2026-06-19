@@ -10,9 +10,9 @@ class OltTemplateController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'     => 'required|string|max:255',
-            'host'     => 'required|string|max:255',
-            'port'     => 'required|integer',
+            'name' => 'required|string|max:255',
+            'host' => 'required|string|max:255',
+            'port' => 'required|integer',
             'username' => 'required|string|max:255',
             'password' => 'required|string',
         ]);
@@ -25,6 +25,7 @@ class OltTemplateController extends Controller
     public function destroy(OltTemplate $oltTemplate)
     {
         $oltTemplate->delete();
+
         return redirect()->back()->with('success', 'Template deleted.');
     }
 

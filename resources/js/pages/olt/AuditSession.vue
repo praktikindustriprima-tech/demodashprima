@@ -6,6 +6,8 @@ import axios from 'axios';
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
+import AuditSessionBar from '@/components/olt/AuditSessionBar.vue';
+import AuditStartModal from '@/components/olt/AuditStartModal.vue';
 import BannerModal from '@/components/olt/BannerModal.vue';
 import ConnectDialog from '@/components/olt/ConnectDialog.vue';
 import DiagnosticsPanel from '@/components/olt/DiagnosticsPanel.vue';
@@ -36,7 +38,20 @@ const hasConnectedOnce = ref(false);
 const lastCheckedAt = ref<Date | null>(null);
 let autoScanInterval: ReturnType<typeof setInterval> | null = null;
 
-const connectionState = useSessionStorage('olt-connection-state', {
+const isAuditModalOpen = ref(false);
+const isSavingAudit = ref(false);
+const auditSession = ref<{
+    id: number | null;
+    name: string;
+    oltId: number;
+    oltName: string;
+    status: 'active' | 'completed';
+    onus: Onu[];
+    startedAt: Date;
+} | null>(null);
+const selectedOnus = ref<Set<string>>(new Set());
+
+const connectionState = useSessionStorage('olt-audit-connection-state', {
     activeOltId: null as number | null,
     host: '', port: 23, username: '', password: '',
     isConnected: false,
@@ -51,11 +66,31 @@ onMounted(async () => {
         scanForm.password = connectionState.value.password;
         await doLogin();
     }
+
+    // Check for active audit session
+    try {
+        const response = await axios.get('/audit/sessions/active');
+        if (response.data.status === 'success' && response.data.data) {
+            const s = response.data.data;
+            auditSession.value = {
+                id: s.id,
+                name: s.name,
+                oltId: s.olt_id,
+                oltName: s.olt?.name || 'Unknown',
+                status: s.status,
+                onus: s.onus || [],
+                startedAt: new Date(s.started_at),
+            };
+            toast.info(`Anda memiliki sesi audit aktif: ${s.name}`);
+        }
+    } catch {
+        // No active session
+    }
 });
 
 const scanForm = ref({
     id: null as number | null,
-    name: 'Quick Scan OLT',
+    name: 'Audit Session OLT',
     host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE',
 });
 
@@ -118,8 +153,93 @@ const doLogin = async () => {
 
 const disconnect = () => {
     activeOltId.value = null; onus.value = []; consoleOutput.value = '';
-    scanForm.value = { id: null, name: 'Quick Scan OLT', host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE' };
+    scanForm.value = { id: null, name: 'Audit Session OLT', host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE' };
     connectionState.value = { activeOltId: null, host: '', port: 23, username: '', password: '', isConnected: false };
+};
+
+const startAuditSession = async (data: { name: string; olt_id: number; olt_name: string }) => {
+    try {
+        const response = await axios.post('/audit/sessions', {
+            name: data.name || undefined,
+            olt_id: data.olt_id,
+        });
+
+        if (response.data.status === 'success') {
+            auditSession.value = {
+                id: response.data.data.id,
+                name: response.data.data.name,
+                oltId: data.olt_id,
+                oltName: data.olt_name,
+                status: 'active',
+                onus: [],
+                startedAt: new Date(),
+            };
+            isAuditModalOpen.value = false;
+            toast.success(`Sesi audit "${response.data.data.name}" dimulai`);
+
+            const olt = props.olts.find(o => o.id === data.olt_id);
+            if (olt) {
+                scanForm.value.host = olt.host;
+            }
+        }
+    } catch (error: any) {
+        toast.error(error.response?.data?.message || 'Gagal memulai sesi audit');
+    }
+};
+
+const saveOnusToSession = (onusToSave: Onu[]) => {
+    if (!auditSession.value) return;
+
+    const existingSns = new Set(auditSession.value.onus.map(o => o.sn));
+    const newOnus = onusToSave.filter(o => !existingSns.has(o.sn));
+    auditSession.value.onus.push(...newOnus);
+    selectedOnus.value.clear();
+
+    toast.success(`${newOnus.length} ONU ditambahkan ke sesi`);
+};
+
+const savePermanent = async () => {
+    if (!auditSession.value?.id || auditSession.value.onus.length === 0) return;
+
+    isSavingAudit.value = true;
+    try {
+        const response = await axios.post(`/audit/sessions/${auditSession.value.id}/save`, {
+            onus: auditSession.value.onus,
+        });
+
+        if (response.data.status === 'success') {
+            toast.success(`${response.data.data.onu_count} ONU disimpan permanen`);
+            closeAuditSession();
+        }
+    } catch (error: any) {
+        toast.error(error.response?.data?.message || 'Gagal menyimpan');
+    } finally {
+        isSavingAudit.value = false;
+    }
+};
+
+const closeAuditSession = () => {
+    if (auditSession.value?.id) {
+        axios.post(`/audit/sessions/${auditSession.value.id}/complete`).catch(() => {});
+    }
+    auditSession.value = null;
+    selectedOnus.value.clear();
+};
+
+const toggleSelectOnu = (sn: string) => {
+    if (selectedOnus.value.has(sn)) {
+        selectedOnus.value.delete(sn);
+    } else {
+        selectedOnus.value.add(sn);
+    }
+};
+
+const selectAllOnus = () => {
+    if (selectedOnus.value.size === onus.value.length) {
+        selectedOnus.value.clear();
+    } else {
+        selectedOnus.value = new Set(onus.value.map(o => o.sn));
+    }
 };
 
 const quickConnect = async () => {
@@ -246,12 +366,26 @@ defineOptions({ layout: AppLayout });
 </script>
 
 <template>
-    <Head title="ONU Scan" />
+    <Head title="Audit Session" />
 
     <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div class="space-y-4 flex-1">
-                <Heading title="Quick Scan" description="Scan for unconfigured ONUs and run diagnostic commands" />
+                <Heading title="Audit Session" description="Kumpulkan data ONU secara bertahap dalam sesi audit" />
+
+                <AuditSessionBar
+                    :session="auditSession"
+                    :is-saving="isSavingAudit"
+                    @start="isAuditModalOpen = true"
+                    @save="savePermanent"
+                    @close="closeAuditSession"
+                />
+
+                <AuditStartModal
+                    v-model:open="isAuditModalOpen"
+                    :olts="olts"
+                    @start:session="startAuditSession"
+                />
 
                 <div v-if="activeOltId" class="flex items-center gap-3 text-sm text-emerald-600 font-medium">
                     <MonitorPlay class="h-4 w-4" />
@@ -316,8 +450,11 @@ defineOptions({ layout: AppLayout });
             :is-scanning="isScanning || isAutoScanning"
             :is-connected="connectionState.isConnected"
             :olt-id="activeOltId"
-            :audit-session="null"
-            :selected-onus="new Set()"
+            :audit-session="auditSession"
+            :selected-onus="selectedOnus"
+            @save-to-session="saveOnusToSession"
+            @toggle-select="toggleSelectOnu"
+            @select-all="selectAllOnus"
         />
     </div>
 </template>

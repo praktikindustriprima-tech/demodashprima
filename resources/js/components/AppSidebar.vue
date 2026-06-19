@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Cpu, FolderGit2, LayoutGrid, History, Settings, ListChecks, MonitorPlay } from '@lucide/vue';
+import { BookOpen, Cpu, FolderGit2, LayoutGrid, History, Settings, ListChecks, MonitorPlay, Scan, ClipboardCheck } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
-import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
     Sidebar,
@@ -22,26 +21,12 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { dashboard, olt } from '@/routes';
-import type { NavItem } from '@/types';
+import { dashboard } from '@/routes';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 
 const { isCurrentUrl } = useCurrentUrl();
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'ONU Scan',
-        href: '/olt/onu-scan',
-        icon: Cpu,
-    },
-    {
-        title: 'OLT Settings',
-        href: '/olt/settings',
-        icon: Settings,
-    },
-];
-
-const footerNavItems: NavItem[] = [
+const footerNavItems = [
     {
         title: 'Repository',
         href: 'https://github.com/laravel/vue-starter-kit',
@@ -71,17 +56,41 @@ const footerNavItems: NavItem[] = [
 
         <SidebarContent>
             <SidebarGroup class="px-2 py-0">
-                
                 <SidebarMenu>
-                    <!-- ONU Scan -->
-                    <SidebarMenuItem>
-                        <SidebarMenuButton as-child :is-active="isCurrentUrl('/olt/onu-scan')" tooltip="ONU Scan">
-                            <Link href="/olt/onu-scan">
-                                <Cpu />
-                                <span>ONU Scan</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    <!-- ONU Scan (collapsible) -->
+                    <Collapsible default-open as-child class="group/collapsible">
+                        <SidebarMenuItem>
+                            <CollapsibleTrigger as-child>
+                                <SidebarMenuButton tooltip="ONU Scan">
+                                    <Cpu />
+                                    <span>ONU Scan</span>
+                                    <svg class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="m9 18 6-6-6-6"/>
+                                    </svg>
+                                </SidebarMenuButton>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <SidebarMenuSub>
+                                    <SidebarMenuSubItem>
+                                        <SidebarMenuSubButton as-child :is-active="isCurrentUrl('/olt/onu-scan')">
+                                            <Link href="/olt/onu-scan">
+                                                <Scan />
+                                                <span>Quick Scan</span>
+                                            </Link>
+                                        </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                    <SidebarMenuSubItem>
+                                        <SidebarMenuSubButton as-child :is-active="isCurrentUrl('/olt/audit-session')">
+                                            <Link href="/olt/audit-session">
+                                                <ClipboardCheck />
+                                                <span>Audit Session</span>
+                                            </Link>
+                                        </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                </SidebarMenuSub>
+                            </CollapsibleContent>
+                        </SidebarMenuItem>
+                    </Collapsible>
 
                     <!-- History (collapsible) -->
                     <Collapsible default-open as-child class="group/collapsible">
