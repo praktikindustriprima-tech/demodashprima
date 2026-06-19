@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Search, Printer, FileDown } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import { toast } from 'vue-sonner';
+import { printToPdf, exportToExcel } from '@/utils';
 
 interface Onu {
     olt_index: string;
@@ -26,62 +27,24 @@ const filtered = computed(() =>
     )
 );
 
+const onuColumns = [
+    { key: 'olt_index' as const, label: 'OLT Index' },
+    { key: 'model' as const, label: 'Model' },
+    { key: 'sn' as const, label: 'Serial Number' },
+    { key: 'pw' as const, label: 'Password' },
+];
+
 const exportToCsv = () => {
-    if (props.onus.length === 0) return;
-
-    const headers = ['OLT Index', 'Model', 'Serial Number', 'Password'];
-    const delimiter = ';';
-    
-    // Escape helper for CSV cells
-    const escapeCsv = (val: string) => {
-        const str = String(val ?? '');
-        return `"${str.replace(/"/g, '""')}"`;
-    };
-
-    const csvRows = [
-        headers.map(escapeCsv).join(delimiter),
-        ...props.onus.map(o => [o.olt_index, o.model, o.sn, o.pw].map(escapeCsv).join(delimiter))
-    ];
-
-    // Add BOM for Excel UTF-8 recognition
-    const csvContent = '\uFEFF' + csvRows.join('\r\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `onu_list_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+    exportToExcel(props.onus, onuColumns, {
+        filename: `onu_list_${new Date().toISOString().slice(0, 10)}.csv`,
+    });
     toast.success('ONU list exported to CSV');
 };
 
 const printTable = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    const tableHtml = document.getElementById('onu-table-container')?.innerHTML;
-    
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>ONU List</title>
-                <style>
-                    table { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px; }
-                    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-                    th { background-color: #f3f4f6; }
-                </style>
-            </head>
-            <body>
-                <h1>ONU List</h1>
-                ${tableHtml}
-            </body>
-        </html>
-    `);
-    
-    printWindow.document.close();
-    printWindow.print();
-    printWindow.close();
+    printToPdf(props.onus, onuColumns, {
+        title: 'ONU List',
+    });
 };
 </script>
 
@@ -93,10 +56,10 @@ const printTable = () => {
                 <Input v-model="searchQuery" placeholder="Search Serial Number..." class="pl-8" />
             </div>
             <div class="flex gap-2">
-                <Button variant="outline" size="sm" @click="exportToCsv">
+                <Button variant="outline" size="sm" :disabled="props.onus.length === 0" @click="exportToCsv">
                     <FileDown class="mr-2 h-4 w-4" /> Export
                 </Button>
-                <Button variant="outline" size="sm" @click="printTable">
+                <Button variant="outline" size="sm" :disabled="props.onus.length === 0" @click="printTable">
                     <Printer class="mr-2 h-4 w-4" /> Print
                 </Button>
             </div>
