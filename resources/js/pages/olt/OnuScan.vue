@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useSessionStorage } from '@vueuse/core';
 import { Head, useForm } from '@inertiajs/vue3';
-import { MonitorPlay, X, Zap } from '@lucide/vue';
+import { MonitorPlay, X, Zap, Clock } from '@lucide/vue';
 import axios from 'axios';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
@@ -32,6 +32,11 @@ const isFetchingBanner = ref(false);
 const isRunningCommand = ref(false);
 const consoleOutput = ref('');
 const isQuickConnecting = ref(false);
+const autoScanEnabled = ref(false);
+const isAutoScanning = ref(false);
+const hasConnectedOnce = ref(false);
+const lastCheckedAt = ref<Date | null>(null);
+let autoScanInterval: ReturnType<typeof setInterval> | null = null;
 
 const connectionState = useSessionStorage('olt-connection-state', {
     activeOltId: null as number | null,
@@ -41,6 +46,7 @@ const connectionState = useSessionStorage('olt-connection-state', {
 
 onMounted(async () => {
     if (connectionState.value.isConnected) {
+        hasConnectedOnce.value = true;
         scanForm.host = connectionState.value.host;
         scanForm.port = connectionState.value.port;
         scanForm.username = connectionState.value.username;
@@ -97,6 +103,8 @@ const doLogin = async () => {
                 isConnected: true,
             };
 
+            lastCheckedAt.value = new Date();
+            hasConnectedOnce.value = true;
             toast.success('Login successful and ONU list updated');
         } else {
             toast.error(scanResponse.data.message || 'Login failed');
@@ -140,6 +148,8 @@ const quickConnect = async () => {
                 isConnected: true,
             };
 
+            lastCheckedAt.value = new Date();
+            hasConnectedOnce.value = true;
             toast.success(`Quick connected via "${t.name}"`);
         } else {
             toast.error(scanResponse.data.message || 'Quick connect failed');
@@ -178,6 +188,57 @@ const runDiagnostic = async (diag: { label: string; command: string; action: str
     }
 };
 
+// Auto scan
+
+const startAutoScan = () => {
+    if (autoScanInterval) return;
+    autoScanInterval = setInterval(async () => {
+        if (!connectionState.value.isConnected || isScanning.value) return;
+        isAutoScanning.value = true;
+        try {
+            const response = await axios.post('/olt/scan', { olt_id: connectionState.value.activeOltId });
+            if (response.data.status === 'success') {
+                onus.value = response.data.data;
+                lastCheckedAt.value = new Date();
+            }
+        } catch {
+            // Silently fail on auto-scan — user is still connected
+        } finally {
+            isAutoScanning.value = false;
+        }
+    }, 5000);
+};
+
+const stopAutoScan = () => {
+    if (autoScanInterval) {
+        clearInterval(autoScanInterval);
+        autoScanInterval = null;
+    }
+};
+
+const toggleAutoScan = () => {
+    autoScanEnabled.value = !autoScanEnabled.value;
+    if (autoScanEnabled.value) {
+        startAutoScan();
+        toast.success('Auto-scan enabled (every 5s)');
+    } else {
+        stopAutoScan();
+        toast.info('Auto-scan disabled');
+    }
+};
+
+watch(() => connectionState.value.isConnected, (connected) => {
+    if (!connected) {
+        autoScanEnabled.value = false;
+        stopAutoScan();
+        lastCheckedAt.value = null;
+    }
+});
+
+onUnmounted(() => {
+    stopAutoScan();
+});
+
 defineOptions({ layout: AppLayout });
 </script>
 
@@ -191,10 +252,18 @@ defineOptions({ layout: AppLayout });
                 <div v-if="activeOltId" class="flex items-center gap-3 text-sm text-emerald-600 font-medium">
                     <MonitorPlay class="h-4 w-4" />
                     Connected to: {{ scanForm.host }}
+                    <span v-if="lastCheckedAt" class="text-muted-foreground font-normal flex items-center gap-1">
+                        <Clock class="h-3 w-3" />
+                        Last scan: {{ lastCheckedAt.toLocaleTimeString() }}
+                    </span>
                     <Button variant="ghost" size="sm" class="text-red-500 hover:text-red-600 h-7 px-2" @click="disconnect">
                         <X class="h-3 w-3 mr-1" /> Disconnect
                     </Button>
                 </div>
+                <label v-if="hasConnectedOnce && connectionState.isConnected" class="flex items-center gap-2 text-sm cursor-pointer select-none">
+                    <input type="checkbox" :checked="autoScanEnabled" @change="toggleAutoScan" class="h-4 w-4 rounded border-muted-foreground accent-primary" />
+                    Auto-scan (5s)
+                </label>
             </div>
 
             <div class="flex gap-2">
@@ -240,6 +309,6 @@ defineOptions({ layout: AppLayout });
             @clear="consoleOutput = ''"
         />
 
-        <OnuTable :onus="onus" :is-scanning="isScanning" :is-connected="connectionState.isConnected" />
+        <OnuTable :onus="onus" :is-scanning="isScanning || isAutoScanning" :is-connected="connectionState.isConnected" />
     </div>
 </template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { Input } from '@/components/ui/input';
-import { Search, Printer, FileDown } from '@lucide/vue';
+import { Search, Printer, FileDown, Loader2 } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import { toast } from 'vue-sonner';
 import { printToPdf, exportToExcel } from '@/utils';
@@ -66,6 +66,12 @@ const printTable = () => {
                 </Button>
             </div>
         </div>
+        <!-- Scanning indicator -->
+        <div v-if="isScanning" class="flex items-center gap-2 text-sm text-muted-foreground px-1">
+            <Loader2 class="h-4 w-4 animate-spin" />
+            Scanning for ONUs...
+        </div>
+
         <!-- Not connected state -->
         <div v-if="!isConnected && !isScanning && onus.length === 0" class="rounded-xl border border-dashed border-sidebar-border/70 dark:border-sidebar-border py-16 flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <Radio class="h-10 w-10" />
@@ -87,7 +93,11 @@ const printTable = () => {
                     <tbody>
                         <tr v-if="filtered.length === 0" class="border-b border-sidebar-border/70 transition-colors last:border-0 dark:border-sidebar-border">
                             <td colspan="4" class="h-24 text-center align-middle">
-                                {{ isScanning ? 'Scanning for ONUs...' : 'No unconfigured ONUs found.' }}
+                                <div v-if="isScanning" class="flex items-center justify-center gap-2 text-muted-foreground">
+                                    <Loader2 class="h-4 w-4 animate-spin" />
+                                    Scanning for ONUs...
+                                </div>
+                                <span v-else>No unconfigured ONUs found.</span>
                             </td>
                         </tr>
                         <tr v-for="onu in filtered" :key="onu.sn" class="border-b border-sidebar-border/70 transition-colors hover:bg-muted/50 last:border-0 dark:border-sidebar-border">
