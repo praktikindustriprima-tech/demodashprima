@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { Input } from '@/components/ui/input';
-import { Search, Printer, FileDown, Loader2 } from '@lucide/vue';
-import { Button } from '@/components/ui/button';
-import { toast } from 'vue-sonner';
-import { printToPdf, exportToExcel } from '@/utils';
+import { Search, Printer, FileDown, Loader2, Info } from '@lucide/vue';
 import { Radio } from '@lucide/vue';
+import { computed, ref } from 'vue';
+import { toast } from 'vue-sonner';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { printToPdf, exportToExcel } from '@/utils';
 
 interface Onu {
     olt_index: string;
@@ -21,6 +22,13 @@ const props = defineProps<{
 }>();
 
 const searchQuery = ref('');
+const selectedOnu = ref<Onu | null>(null);
+const isInfoOpen = ref(false);
+
+const showInfo = (onu: Onu) => {
+    selectedOnu.value = onu;
+    isInfoOpen.value = true;
+};
 
 const filtered = computed(() =>
     props.onus.filter(o =>
@@ -88,11 +96,12 @@ const printTable = () => {
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Model</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Serial Number</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Password</th>
+                            <th class="h-12 w-12"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="filtered.length === 0" class="border-b border-sidebar-border/70 transition-colors last:border-0 dark:border-sidebar-border">
-                            <td colspan="4" class="h-24 text-center align-middle">
+                            <td colspan="5" class="h-24 text-center align-middle">
                                 <div v-if="isScanning" class="flex items-center justify-center gap-2 text-muted-foreground">
                                     <Loader2 class="h-4 w-4 animate-spin" />
                                     Scanning for ONUs...
@@ -105,10 +114,41 @@ const printTable = () => {
                             <td class="p-4 align-middle">{{ onu.model }}</td>
                             <td class="p-4 align-middle font-mono">{{ onu.sn }}</td>
                             <td class="p-4 align-middle font-mono">{{ onu.pw }}</td>
+                            <td class="p-4 align-middle">
+                                <Button variant="ghost" size="sm" @click="showInfo(onu)">
+                                    <Info class="h-4 w-4" />
+                                </Button>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
+
+        <Dialog v-model:open="isInfoOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>ONU Information</DialogTitle>
+                </DialogHeader>
+                <div v-if="selectedOnu" class="space-y-3">
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-muted-foreground">OLT Index</span>
+                        <span class="font-mono">{{ selectedOnu.olt_index }}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-muted-foreground">Model</span>
+                        <span>{{ selectedOnu.model }}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
+                        <span class="text-muted-foreground">Serial Number</span>
+                        <span class="font-mono">{{ selectedOnu.sn }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-muted-foreground">Password</span>
+                        <span class="font-mono">{{ selectedOnu.pw }}</span>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
     </div>
 </template>
