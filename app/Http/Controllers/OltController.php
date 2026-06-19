@@ -226,7 +226,7 @@ class OltController extends Controller
         $commandIndex = str_replace('gpon-olt_', 'gpon-olt ', $request->olt_index);
 
         try {
-            $output = $this->oltService->execute($olt, "show gpon onu info {$commandIndex}", 'ONU Info');
+            $output = $this->oltService->executeExec($olt, "show gpon onu info {$commandIndex}", 'ONU Info');
             $info = $this->oltService->parseOnuInfo($output);
 
             return response()->json([

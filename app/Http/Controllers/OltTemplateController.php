@@ -30,6 +30,11 @@ class OltTemplateController extends Controller
 
     public function setDefault(OltTemplate $oltTemplate)
     {
+        if ($oltTemplate->is_default) {
+            $oltTemplate->update(['is_default' => false]);
+            return redirect()->back()->with('success', 'Default template removed.');
+        }
+
         OltTemplate::query()->update(['is_default' => false]);
         $oltTemplate->update(['is_default' => true]);
 
