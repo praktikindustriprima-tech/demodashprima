@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Olt;
 use App\Models\OltHistory;
+use App\Services\OltCommand;
 use App\Services\OltService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -154,8 +155,8 @@ class OltController extends Controller
         }
 
         try {
-            $output = $this->oltService->execute($olt, 'show pon onu u', 'Scan');
-            $onus = $this->oltService->parseUnconfiguredOnus($output);
+            $output = $this->oltService->execute($olt, OltCommand::buildScanOnusCommand(), 'Scan');
+            $onus = OltCommand::parseUnconfiguredOnus($output);
 
             return response()->json([
                 'status' => 'success',
@@ -193,6 +194,13 @@ class OltController extends Controller
             ], 400);
         }
 
+        if (!OltCommand::isValidCommand($request->command)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid command.',
+            ], 400);
+        }
+
         try {
             $output = $this->oltService->execute($olt, $request->command, $request->action);
 
@@ -222,12 +230,10 @@ class OltController extends Controller
 
         $olt = Olt::find($request->olt_id);
 
-        // ZTE CLI uses space between type and index (gpon-olt 1/3/14)
-        $commandIndex = str_replace('gpon-olt_', 'gpon-olt ', $request->olt_index);
-
         try {
-            $output = $this->oltService->execute($olt, "show gpon onu info {$commandIndex}", 'ONU Info');
-            $info = $this->oltService->parseOnuInfo($output);
+            $command = OltCommand::buildGetOnuInfoCommand($request->olt_index);
+            $output = $this->oltService->execute($olt, $command, 'ONU Info');
+            $info = OltCommand::parseOnuInfo($output);
 
             return response()->json([
                 'status' => 'success',
