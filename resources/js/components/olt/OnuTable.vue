@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { Search, Printer, FileDown, Loader2, Info } from '@lucide/vue';
 import { Radio } from '@lucide/vue';
+import axios from 'axios';
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { printToPdf, exportToExcel } from '@/utils';
 
 interface Onu {
@@ -19,15 +21,47 @@ const props = defineProps<{
     onus: Onu[];
     isScanning: boolean;
     isConnected: boolean;
+    oltId: number | null;
 }>();
 
 const searchQuery = ref('');
 const selectedOnu = ref<Onu | null>(null);
 const isInfoOpen = ref(false);
+const isLoadingInfo = ref(false);
+const onuDetail = ref<Record<string, string>>({});
+const rawOutput = ref('');
 
-const showInfo = (onu: Onu) => {
+const showInfo = async (onu: Onu) => {
     selectedOnu.value = onu;
     isInfoOpen.value = true;
+    onuDetail.value = {};
+    rawOutput.value = '';
+
+    if (!props.oltId) {
+        toast.error('No active OLT connection');
+
+        return;
+    }
+
+    isLoadingInfo.value = true;
+
+    try {
+        const response = await axios.post('/olt/onu-info', {
+            olt_id: props.oltId,
+            olt_index: onu.olt_index,
+        });
+
+        if (response.data.status === 'success') {
+            onuDetail.value = response.data.data;
+            rawOutput.value = response.data.raw || '';
+        } else {
+            toast.error(response.data.message || 'Failed to fetch ONU info');
+        }
+    } catch (error: any) {
+        toast.error(error.response?.data?.message || 'Failed to fetch ONU info');
+    } finally {
+        isLoadingInfo.value = false;
+    }
 };
 
 const filtered = computed(() =>
@@ -43,6 +77,28 @@ const onuColumns = [
     { key: 'sn' as const, label: 'Serial Number' },
     { key: 'pw' as const, label: 'Password' },
 ];
+
+const infoLabels: Record<string, string> = {
+    onu_type: 'ONU Type',
+    onu_sn: 'Serial Number',
+    password: 'Password',
+    state: 'State',
+    rx_power: 'RX Power',
+    tx_power: 'TX Power',
+    distance: 'Distance',
+    vendor_id: 'Vendor ID',
+    equipment_id: 'Equipment ID',
+    firmware_version: 'Firmware Version',
+    serial_number: 'Serial Number',
+    description: 'Description',
+    admin_state: 'Admin State',
+    oper_state: 'Oper State',
+    last_down_cause: 'Last Down Cause',
+    channel_count: 'Channel Count',
+    bind_number: 'Bind Number',
+    line_profile: 'Line Profile',
+    service_profile: 'Service Profile',
+};
 
 const exportToCsv = () => {
     exportToExcel(props.onus, onuColumns, {
@@ -126,7 +182,7 @@ const printTable = () => {
         </div>
 
         <Dialog v-model:open="isInfoOpen">
-            <DialogContent>
+            <DialogContent class="max-w-lg">
                 <DialogHeader>
                     <DialogTitle>ONU Information</DialogTitle>
                 </DialogHeader>
@@ -147,6 +203,30 @@ const printTable = () => {
                         <span class="text-muted-foreground">Password</span>
                         <span class="font-mono">{{ selectedOnu.pw }}</span>
                     </div>
+                </div>
+
+                <div v-if="isLoadingInfo" class="flex items-center justify-center gap-2 py-4 text-muted-foreground">
+                    <Spinner class="h-4 w-4" />
+                    <span class="text-sm">Fetching device info from OLT...</span>
+                </div>
+
+                <div v-else-if="Object.keys(onuDetail).length > 0" class="mt-2 space-y-2 border-t pt-3">
+                    <h4 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Device Details</h4>
+                    <div v-for="(value, key) in onuDetail" :key="key" class="flex justify-between border-b pb-1 last:border-0">
+                        <span class="text-muted-foreground text-sm">{{ infoLabels[key] || key }}</span>
+                        <span class="font-mono text-sm">{{ value }}</span>
+                    </div>
+                    <div v-if="rawOutput" class="mt-3">
+                        <details class="group">
+                            <summary class="cursor-pointer text-xs text-muted-foreground hover:text-foreground">Show raw output</summary>
+                            <pre class="mt-2 rounded-lg bg-slate-950 p-3 font-mono text-xs text-emerald-400 overflow-auto max-h-[200px] whitespace-pre-wrap">{{ rawOutput }}</pre>
+                        </details>
+                    </div>
+                </div>
+
+                <div v-else-if="rawOutput" class="mt-2 border-t pt-3">
+                    <h4 class="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Raw Output</h4>
+                    <pre class="rounded-lg bg-slate-950 p-3 font-mono text-xs text-emerald-400 overflow-auto max-h-[200px] whitespace-pre-wrap">{{ rawOutput }}</pre>
                 </div>
             </DialogContent>
         </Dialog>

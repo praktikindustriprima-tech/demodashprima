@@ -131,6 +131,44 @@ class OltService
         return $onus;
     }
 
+    /**
+     * Parse the 'show gpon onu info' output into structured data.
+     */
+    public function parseOnuInfo(string $output): array
+    {
+        $info = [];
+
+        $patterns = [
+            'onu_type' => '/Onu\s+Type\s*:\s*(.+)/i',
+            'onu_sn' => '/Onu\s+SN\s*:\s*(.+)/i',
+            'password' => '/Password\s*:\s*(.+)/i',
+            'state' => '/State\s*:\s*(.+)/i',
+            'rx_power' => '/Rx\s+Power\s*:\s*(.+)/i',
+            'tx_power' => '/Tx\s+Power\s*:\s*(.+)/i',
+            'distance' => '/Distance\s*:\s*(.+)/i',
+            'vendor_id' => '/Vendor\s+ID\s*:\s*(.+)/i',
+            'equipment_id' => '/Equipment\s+ID\s*:\s*(.+)/i',
+            'firmware_version' => '/Firmware\s+Version\s*:\s*(.+)/i',
+            'serial_number' => '/Serial\s+Number\s*:\s*(.+)/i',
+            'description' => '/Description\s*:\s*(.+)/i',
+            'admin_state' => '/Admin\s+State\s*:\s*(.+)/i',
+            'oper_state' => '/Oper\s+State\s*:\s*(.+)/i',
+            'last_down_cause' => '/Last\s+Down\s+Cause\s*:\s*(.+)/i',
+            'channel_count' => '/Channel\s+Count\s*:\s*(.+)/i',
+            'bind_number' => '/Bind\s+Number\s*:\s*(.+)/i',
+            'line_profile' => '/Line\s+Profile\s*:\s*(.+)/i',
+            'service_profile' => '/Service\s+Profile\s*:\s*(.+)/i',
+        ];
+
+        foreach ($patterns as $key => $pattern) {
+            if (preg_match($pattern, $output, $match)) {
+                $info[$key] = trim($match[1]);
+            }
+        }
+
+        return $info;
+    }
+
 
     public function waitFor(string $needle, float $timeout = 10.0): string
     {

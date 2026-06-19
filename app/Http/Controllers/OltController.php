@@ -211,6 +211,40 @@ class OltController extends Controller
     }
 
     /**
+     * Get detailed info for a specific ONU via telnet.
+     */
+    public function getOnuInfo(Request $request)
+    {
+        $request->validate([
+            'olt_id' => 'required|exists:olts,id',
+            'olt_index' => 'required|string',
+        ]);
+
+        $olt = Olt::find($request->olt_id);
+
+        // ZTE CLI uses space between type and index (gpon-olt 1/3/14)
+        $commandIndex = str_replace('gpon-olt_', 'gpon-olt ', $request->olt_index);
+
+        try {
+            $output = $this->oltService->execute($olt, "show gpon onu info {$commandIndex}", 'ONU Info');
+            $info = $this->oltService->parseOnuInfo($output);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $info,
+                'raw' => $output,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch ONU info: ' . $e->getMessage(),
+            ], 500);
+        } finally {
+            $this->oltService->disconnect();
+        }
+    }
+
+    /**
      * Show history page.
      */
     public function history(Request $request)

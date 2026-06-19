@@ -19,6 +19,7 @@ Route::delete('olt/templates/{oltTemplate}', [OltTemplateController::class, 'des
 Route::patch('olt/templates/{oltTemplate}/default', [OltTemplateController::class, 'setDefault'])->name('olt.templates.default');
 
 Route::post('olt/get-banner', [OltController::class, 'getBanner'])->name('olt.get-banner');
+Route::post('olt/onu-info', [OltController::class, 'getOnuInfo'])->name('olt.onu-info');
 Route::get('olt/settings', [OltController::class, 'settings'])->name('olt.settings');
 
 Route::post('olt/settings', [OltController::class, 'saveSettings'])->name('olt.settings.save');
