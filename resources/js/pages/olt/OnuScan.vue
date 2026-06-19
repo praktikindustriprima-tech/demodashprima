@@ -240,6 +240,6 @@ defineOptions({ layout: AppLayout });
             @clear="consoleOutput = ''"
         />
 
-        <OnuTable :onus="onus" :is-scanning="isScanning" />
+        <OnuTable :onus="onus" :is-scanning="isScanning" :is-connected="connectionState.isConnected" />
     </div>
 </template>

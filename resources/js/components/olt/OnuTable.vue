@@ -5,6 +5,7 @@ import { Search, Printer, FileDown } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import { toast } from 'vue-sonner';
 import { printToPdf, exportToExcel } from '@/utils';
+import { Radio } from '@lucide/vue';
 
 interface Onu {
     olt_index: string;
@@ -16,6 +17,7 @@ interface Onu {
 const props = defineProps<{
     onus: Onu[];
     isScanning: boolean;
+    isConnected: boolean;
 }>();
 
 const searchQuery = ref('');
@@ -64,7 +66,14 @@ const printTable = () => {
                 </Button>
             </div>
         </div>
-        <div id="onu-table-container" class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border overflow-hidden">
+        <!-- Not connected state -->
+        <div v-if="!isConnected && !isScanning && onus.length === 0" class="rounded-xl border border-dashed border-sidebar-border/70 dark:border-sidebar-border py-16 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+            <Radio class="h-10 w-10" />
+            <p class="text-sm">Connect to an OLT to start scanning for ONUs.</p>
+        </div>
+
+        <!-- Connected / scanning / has data state -->
+        <div v-else id="onu-table-container" class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
