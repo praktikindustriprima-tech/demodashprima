@@ -10,9 +10,11 @@ Route::get('olt/onu-scan', [OltController::class, 'index'])->name('olt.onu-scan'
 Route::post('olt/scan', [OltController::class, 'scan'])->name('olt.scan');
 Route::post('olt/run-command', [OltController::class, 'runCommand'])->name('olt.run-command');
 
-Route::get('olt/history', [OltController::class, 'history'])->name('olt.history');
-Route::get('olt/history/export', [OltController::class, 'export'])->name('olt.history.export');
-Route::delete('olt/history', [OltController::class, 'clearHistory'])->name('olt.history.clear');
+Route::get('olt/history/action', [OltController::class, 'actionHistory'])->name('olt.history.action');
+Route::get('olt/history/action/export', [OltController::class, 'export'])->name('olt.history.export');
+Route::delete('olt/history/action', [OltController::class, 'clearHistory'])->name('olt.history.clear');
+
+Route::get('olt/history/session', [OltController::class, 'sessionHistory'])->name('olt.history.session');
 
 Route::post('olt/templates', [OltTemplateController::class, 'store'])->name('olt.templates.store');
 Route::delete('olt/templates/{oltTemplate}', [OltTemplateController::class, 'destroy'])->name('olt.templates.destroy');

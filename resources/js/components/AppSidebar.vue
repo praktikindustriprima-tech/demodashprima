@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Cpu, FolderGit2, LayoutGrid, History, Settings } from '@lucide/vue';
+import { BookOpen, Cpu, FolderGit2, LayoutGrid, History, Settings, ListChecks, MonitorPlay } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -13,20 +13,26 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarMenuSub,
+    SidebarMenuSubButton,
+    SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { dashboard, olt } from '@/routes';
 import type { NavItem } from '@/types';
+import { useCurrentUrl } from '@/composables/useCurrentUrl';
+
+const { isCurrentUrl } = useCurrentUrl();
 
 const mainNavItems: NavItem[] = [
     {
         title: 'ONU Scan',
         href: '/olt/onu-scan',
         icon: Cpu,
-    },
-    {
-        title: 'History',
-        href: '/olt/history',
-        icon: History,
     },
     {
         title: 'OLT Settings',
@@ -64,7 +70,65 @@ const footerNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <SidebarGroup class="px-2 py-0">
+                
+                <SidebarMenu>
+                    <!-- ONU Scan -->
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child :is-active="isCurrentUrl('/olt/onu-scan')" tooltip="ONU Scan">
+                            <Link href="/olt/onu-scan">
+                                <Cpu />
+                                <span>ONU Scan</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+
+                    <!-- History (collapsible) -->
+                    <Collapsible default-open as-child class="group/collapsible">
+                        <SidebarMenuItem>
+                            <CollapsibleTrigger as-child>
+                                <SidebarMenuButton tooltip="History">
+                                    <History />
+                                    <span>History</span>
+                                    <svg class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="m9 18 6-6-6-6"/>
+                                    </svg>
+                                </SidebarMenuButton>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <SidebarMenuSub>
+                                    <SidebarMenuSubItem>
+                                        <SidebarMenuSubButton as-child :is-active="isCurrentUrl('/olt/history/action')">
+                                            <Link href="/olt/history/action">
+                                                <ListChecks />
+                                                <span>Action</span>
+                                            </Link>
+                                        </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                    <SidebarMenuSubItem>
+                                        <SidebarMenuSubButton as-child :is-active="isCurrentUrl('/olt/history/session')">
+                                            <Link href="/olt/history/session">
+                                                <MonitorPlay />
+                                                <span>Scan Session</span>
+                                            </Link>
+                                        </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                </SidebarMenuSub>
+                            </CollapsibleContent>
+                        </SidebarMenuItem>
+                    </Collapsible>
+
+                    <!-- OLT Settings -->
+                    <SidebarMenuItem>
+                        <SidebarMenuButton as-child :is-active="isCurrentUrl('/olt/settings')" tooltip="OLT Settings">
+                            <Link href="/olt/settings">
+                                <Settings />
+                                <span>OLT Settings</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarGroup>
         </SidebarContent>
 
         <SidebarFooter>

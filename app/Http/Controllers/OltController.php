@@ -245,9 +245,9 @@ class OltController extends Controller
     }
 
     /**
-     * Show history page.
+     * Show action history page.
      */
-    public function history(Request $request)
+    public function actionHistory(Request $request)
     {
         $query = OltHistory::with(['user', 'olt']);
 
@@ -260,10 +260,18 @@ class OltController extends Controller
 
         $history = $query->latest()->paginate(20)->withQueryString();
 
-        return Inertia::render('olt/History', [
+        return Inertia::render('olt/ActionHistory', [
             'history' => $history,
             'filters' => $request->only(['filter']),
         ]);
+    }
+
+    /**
+     * Show session history page.
+     */
+    public function sessionHistory()
+    {
+        return Inertia::render('olt/SessionHistory');
     }
 
     /**
