@@ -5,24 +5,31 @@ import { ref } from 'vue';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import AppLayout from '@/layouts/AppLayout.vue';
 
 interface OltTemplate {
     id: number; name: string; host: string; port: number; username: string; is_default: boolean;
 }
 
-const props = defineProps<{ templates: OltTemplate[] }>();
+defineProps<{ templates: OltTemplate[] }>();
 
 // --- Template form ---
 const templateForm = useForm({ name: '', host: '', port: 23, username: '', password: '' });
+const defaultForm = useForm({});
+const deleteForm = useForm({});
 
 const submitTemplate = () => {
     templateForm.post('/olt/templates', {
+        onSuccess: () => {
+ toast.success('Template saved'); templateForm.reset(); 
+},
         onSuccess: () => {
  toast.success('Template saved'); templateForm.reset(); 
 },
@@ -31,11 +38,11 @@ const submitTemplate = () => {
 };
 const deleteTemplate = (id: number) => {
     if (confirm('Delete this template?')) {
-        templateForm.delete(`/olt/templates/${id}`, { onSuccess: () => toast.success('Template deleted') });
+        deleteForm.delete(`/olt/templates/${id}`, { onSuccess: () => toast.success('Template deleted') });
     }
 };
 const setDefault = (id: number) => {
-    templateForm.patch(`/olt/templates/${id}/default`, {
+    defaultForm.patch(`/olt/templates/${id}/default`, {
         onSuccess: () => toast.success('Default template updated'),
     });
 };
@@ -113,6 +120,7 @@ defineOptions({ layout: AppLayout });
                 <Card>
                     <CardHeader>
                         <CardTitle>Saved Templates</CardTitle>
+                        <CardDescription>Use the menu to set a template as default for Quick Connect.</CardDescription>
                         <CardDescription>Use the menu to set a template as default for Quick Connect.</CardDescription>
                     </CardHeader>
                     <CardContent>
