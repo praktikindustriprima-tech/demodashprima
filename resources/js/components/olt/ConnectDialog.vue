@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 
 interface Template {
@@ -27,11 +28,15 @@ const emit = defineEmits<{
     'connect': [data: { host: string; port: number; username: string; password: string }];
 }>();
 
-const selectedTemplateId = ref<string>('manual');
+const selectedTemplateId = ref<string>(
+    props.templates.find(t => t.is_default)?.id ? String(props.templates.find(t => t.is_default)!.id) : 'manual'
+);
 const host = ref('');
 const port = ref('23');
 const username = ref('admin');
 const password = ref('');
+
+let isApplyingTemplate = false;
 
 watch(selectedTemplateId, (val) => {
     if (val === 'manual') {
@@ -41,8 +46,18 @@ return;
     const t = props.templates.find(t => t.id === Number(val));
 
     if (t) {
- host.value = t.host; port.value = String(t.port); username.value = t.username; password.value = t.password; 
+ isApplyingTemplate = true; host.value = t.host; port.value = String(t.port); username.value = t.username; password.value = t.password; isApplyingTemplate = false;
 }
+}, { immediate: true });
+
+watch([host, port, username, password], () => {
+    if (isApplyingTemplate) {
+        return;
+    }
+
+    if (selectedTemplateId.value !== 'manual') {
+        selectedTemplateId.value = 'manual';
+    }
 });
 </script>
 
@@ -72,6 +87,11 @@ return;
                             </SelectItem>
                         </SelectContent>
                     </Select>
+                </div>
+                <div class="flex items-center gap-3 px-4">
+                    <Separator class="flex-1" />
+                    <span class="text-xs text-muted-foreground">atau isi manual</span>
+                    <Separator class="flex-1" />
                 </div>
                 <div class="grid grid-cols-4 items-center gap-4">
                     <Label class="text-right">IP</Label>
