@@ -22,7 +22,9 @@ export function printToPdf<T extends Record<string, any>>(
     columns: PrintColumn<T>[],
     options: PrintOptions = {},
 ) {
-    if (data.length === 0) return;
+    if (data.length === 0) {
+return;
+}
 
     const { title = 'Print', subtitle, styles = DEFAULT_STYLES } = options;
 
@@ -41,7 +43,10 @@ export function printToPdf<T extends Record<string, any>>(
     const subtitleHtml = subtitle ? '<p>' + escapeHtml(subtitle) + '</p>' : '';
 
     const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+
+    if (!printWindow) {
+return;
+}
 
     const html = '<html><head><title>' + escapeHtml(title) + '</title><style>' + styles + '</style></head><body>' +
         '<h1>' + escapeHtml(title) + '</h1>' + subtitleHtml +

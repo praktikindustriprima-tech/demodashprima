@@ -23,7 +23,13 @@ class AuditSessionController extends Controller
             return response()->json(['status' => 'success', 'data' => $sessions]);
         }
 
-        return inertia('olt/SessionHistory', ['sessions' => $sessions]);
+        return inertia('olt/SessionHistory', ['sessions' => [
+            'data' => $sessions->items(),
+            'current_page' => $sessions->currentPage(),
+            'last_page' => $sessions->lastPage(),
+            'links' => $sessions->links(),
+            'total' => $sessions->total(),
+        ]]);
     }
 
     /**

@@ -11,6 +11,7 @@ export interface ExportOptions {
 
 const escapeCsv = (val: string, delimiter: string) => {
     const str = String(val ?? '');
+
     return `"${str.replace(/"/g, '""')}"`;
 };
 
@@ -19,7 +20,9 @@ export function exportToExcel<T extends Record<string, any>>(
     columns: ExportColumn<T>[],
     options: ExportOptions = {},
 ) {
-    if (data.length === 0) return;
+    if (data.length === 0) {
+return;
+}
 
     const {
         filename = `export_${new Date().toISOString().slice(0, 10)}.csv`,

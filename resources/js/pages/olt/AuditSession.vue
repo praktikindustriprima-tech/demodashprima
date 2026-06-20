@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { MonitorPlay, X, Zap, Clock } from '@lucide/vue';
+import { MonitorPlay, X, Clock, ClipboardCheck } from '@lucide/vue';
 import { useSessionStorage } from '@vueuse/core';
 import axios from 'axios';
 import { ref, onMounted, onUnmounted, watch } from 'vue';
@@ -22,24 +22,27 @@ interface Onu { olt_index: string; model: string; sn: string; pw: string; }
 
 const props = defineProps<{ olts: OltOption[]; templates: Template[] }>();
 
-const isModalOpen = ref(false);
-const isBannerModalOpen = ref(false);
-const capturedBanner = ref('');
 const activeOltId = ref<number | null>(null);
 const onus = ref<Onu[]>([]);
 const isScanning = ref(false);
-const isFetchingBanner = ref(false);
 const isRunningCommand = ref(false);
 const consoleOutput = ref('');
-const isQuickConnecting = ref(false);
 const autoScanEnabled = ref(false);
 const isAutoScanning = ref(false);
 const hasConnectedOnce = ref(false);
 const lastCheckedAt = ref<Date | null>(null);
 let autoScanInterval: ReturnType<typeof setInterval> | null = null;
 
+// Connect dialog & banner
+const isConnectModalOpen = ref(false);
+const isBannerModalOpen = ref(false);
+const capturedBanner = ref('');
+const isFetchingBanner = ref(false);
+
+// Audit session
 const isAuditModalOpen = ref(false);
 const isSavingAudit = ref(false);
+const pendingSessionName = ref('');
 const auditSession = ref<{
     id: number | null;
     name: string;
@@ -58,18 +61,12 @@ const connectionState = useSessionStorage('olt-audit-connection-state', {
 });
 
 onMounted(async () => {
-    if (connectionState.value.isConnected) {
-        hasConnectedOnce.value = true;
-        scanForm.host = connectionState.value.host;
-        scanForm.port = connectionState.value.port;
-        scanForm.username = connectionState.value.username;
-        scanForm.password = connectionState.value.password;
-        await doLogin();
-    }
+    // Check for active audit session first
+    let hasActiveSession = false;
 
-    // Check for active audit session
     try {
         const response = await axios.get('/audit/sessions/active');
+
         if (response.data.status === 'success' && response.data.data) {
             const s = response.data.data;
             auditSession.value = {
@@ -81,10 +78,21 @@ onMounted(async () => {
                 onus: s.onus || [],
                 startedAt: new Date(s.started_at),
             };
+            hasActiveSession = true;
             toast.info(`Anda memiliki sesi audit aktif: ${s.name}`);
         }
     } catch {
         // No active session
+    }
+
+    // Reconnect to OLT if previously connected (without creating a new session)
+    if (connectionState.value.isConnected) {
+        hasConnectedOnce.value = true;
+        scanForm.value.host = connectionState.value.host;
+        scanForm.value.port = connectionState.value.port;
+        scanForm.value.username = connectionState.value.username;
+        scanForm.value.password = connectionState.value.password;
+        await doLogin(false);
     }
 });
 
@@ -94,9 +102,19 @@ const scanForm = ref({
     host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE',
 });
 
+// Step 1: User clicks "Mulai Sesi Audit" → AuditStartModal opens (name only)
+// Step 2: User clicks "Mulai" → opens ConnectDialog
+const handleStartSession = (data: { name: string }) => {
+    pendingSessionName.value = data.name || '';
+    isAuditModalOpen.value = false;
+    isConnectModalOpen.value = true;
+};
+
+// Step 3: User fills connection → fetch banner
 const fetchBanner = async (data: { host: string; port: number; username: string; password: string }) => {
     if (!data.host || !data.username || !data.password) {
         toast.error('Please fill in all connection details');
+
         return;
     }
 
@@ -108,7 +126,7 @@ const fetchBanner = async (data: { host: string; port: number; username: string;
 
         if (response.data.status === 'success') {
             capturedBanner.value = response.data.banner;
-            isModalOpen.value = false;
+            isConnectModalOpen.value = false;
             isBannerModalOpen.value = true;
         } else {
             toast.error(response.data.message || 'Failed to reach OLT');
@@ -120,7 +138,8 @@ const fetchBanner = async (data: { host: string; port: number; username: string;
     }
 };
 
-const doLogin = async () => {
+// Step 4: Banner shown → user clicks "Login" → connect + create session
+const doLogin = async (createSession = true) => {
     isScanning.value = true;
 
     try {
@@ -140,7 +159,15 @@ const doLogin = async () => {
 
             lastCheckedAt.value = new Date();
             hasConnectedOnce.value = true;
-            toast.success('Login successful and ONU list updated');
+            isBannerModalOpen.value = false;
+
+            if (createSession) {
+                const olt = props.olts.find(o => o.id === scanResponse.data.olt_id);
+                await createAuditSession(scanResponse.data.olt_id, olt?.name || 'Unknown');
+                toast.success('Login successful, sesi audit dimulai');
+            } else {
+                toast.success('Reconnected to OLT');
+            }
         } else {
             toast.error(scanResponse.data.message || 'Login failed');
         }
@@ -151,44 +178,40 @@ const doLogin = async () => {
     }
 };
 
-const disconnect = () => {
-    activeOltId.value = null; onus.value = []; consoleOutput.value = '';
-    scanForm.value = { id: null, name: 'Audit Session OLT', host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE' };
-    connectionState.value = { activeOltId: null, host: '', port: 23, username: '', password: '', isConnected: false };
-};
-
-const startAuditSession = async (data: { name: string; olt_id: number; olt_name: string }) => {
+const createAuditSession = async (oltId: number, oltName: string) => {
     try {
         const response = await axios.post('/audit/sessions', {
-            name: data.name || undefined,
-            olt_id: data.olt_id,
+            name: pendingSessionName.value || undefined,
+            olt_id: oltId,
         });
 
         if (response.data.status === 'success') {
             auditSession.value = {
                 id: response.data.data.id,
                 name: response.data.data.name,
-                oltId: data.olt_id,
-                oltName: data.olt_name,
+                oltId: oltId,
+                oltName: oltName,
                 status: 'active',
                 onus: [],
                 startedAt: new Date(),
             };
-            isAuditModalOpen.value = false;
-            toast.success(`Sesi audit "${response.data.data.name}" dimulai`);
-
-            const olt = props.olts.find(o => o.id === data.olt_id);
-            if (olt) {
-                scanForm.value.host = olt.host;
-            }
+            pendingSessionName.value = '';
         }
     } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Gagal memulai sesi audit');
+        toast.error(error.response?.data?.message || 'Gagal membuat sesi audit');
     }
 };
 
+const disconnect = () => {
+    activeOltId.value = null; onus.value = []; consoleOutput.value = '';
+    scanForm.value = { id: null, name: 'Audit Session OLT', host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE' };
+    connectionState.value = { activeOltId: null, host: '', port: 23, username: '', password: '', isConnected: false };
+};
+
 const saveOnusToSession = (onusToSave: Onu[]) => {
-    if (!auditSession.value) return;
+    if (!auditSession.value) {
+return;
+}
 
     const existingSns = new Set(auditSession.value.onus.map(o => o.sn));
     const newOnus = onusToSave.filter(o => !existingSns.has(o.sn));
@@ -199,9 +222,12 @@ const saveOnusToSession = (onusToSave: Onu[]) => {
 };
 
 const savePermanent = async () => {
-    if (!auditSession.value?.id || auditSession.value.onus.length === 0) return;
+    if (!auditSession.value?.id || auditSession.value.onus.length === 0) {
+return;
+}
 
     isSavingAudit.value = true;
+
     try {
         const response = await axios.post(`/audit/sessions/${auditSession.value.id}/save`, {
             onus: auditSession.value.onus,
@@ -222,6 +248,7 @@ const closeAuditSession = () => {
     if (auditSession.value?.id) {
         axios.post(`/audit/sessions/${auditSession.value.id}/complete`).catch(() => {});
     }
+
     auditSession.value = null;
     selectedOnus.value.clear();
 };
@@ -242,52 +269,10 @@ const selectAllOnus = () => {
     }
 };
 
-const quickConnect = async () => {
-    const template = props.templates.find(t => t.is_default);
-    if (!template) {
-        toast.error('No default template set. Go to Settings to set one.');
-        return;
-    }
-
-    const t = template;
-    scanForm.value.host = t.host; scanForm.value.port = t.port;
-    scanForm.value.username = t.username; scanForm.value.password = '';
-
-    isQuickConnecting.value = true;
-    isScanning.value = true;
-
-    try {
-        const scanResponse = await axios.post('/olt/scan', { template_id: t.id });
-
-        if (scanResponse.data.status === 'success') {
-            onus.value = scanResponse.data.data;
-            activeOltId.value = scanResponse.data.olt_id;
-
-            connectionState.value = {
-                activeOltId: scanResponse.data.olt_id,
-                host: t.host, port: t.port,
-                username: t.username, password: t.password,
-                isConnected: true,
-            };
-
-            lastCheckedAt.value = new Date();
-            hasConnectedOnce.value = true;
-            toast.success(`Quick connected via "${t.name}"`);
-        } else {
-            toast.error(scanResponse.data.message || 'Quick connect failed');
-        }
-    } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Quick connect failed');
-    } finally {
-        isScanning.value = false;
-        isQuickConnecting.value = false;
-    }
-};
-
 const runDiagnostic = async (diag: { label: string; command: string; action: string }) => {
     if (!scanForm.value.host) {
         toast.error('Please connect to a device first');
-        isModalOpen.value = true;
+
         return;
     }
 
@@ -314,14 +299,20 @@ const runDiagnostic = async (diag: { label: string; command: string; action: str
 };
 
 const startAutoScan = () => {
-    if (autoScanInterval) return;
+    if (autoScanInterval) {
+return;
+}
 
     autoScanInterval = setInterval(async () => {
-        if (!connectionState.value.isConnected || isScanning.value) return;
+        if (!connectionState.value.isConnected || isScanning.value) {
+return;
+}
 
         isAutoScanning.value = true;
+
         try {
             const response = await axios.post('/olt/scan', { olt_id: connectionState.value.activeOltId });
+
             if (response.data.status === 'success') {
                 onus.value = response.data.data;
                 lastCheckedAt.value = new Date();
@@ -341,6 +332,7 @@ const stopAutoScan = () => {
 
 const toggleAutoScan = () => {
     autoScanEnabled.value = !autoScanEnabled.value;
+
     if (autoScanEnabled.value) {
         startAutoScan();
         toast.success('Auto-scan enabled (every 5s)');
@@ -369,92 +361,87 @@ defineOptions({ layout: AppLayout });
     <Head title="Audit Session" />
 
     <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div class="space-y-4 flex-1">
-                <Heading title="Audit Session" description="Kumpulkan data ONU secara bertahap dalam sesi audit" />
+        <Heading title="Audit Session" description="Kumpulkan data ONU secara bertahap dalam sesi audit" />
 
-                <AuditSessionBar
-                    :session="auditSession"
-                    :is-saving="isSavingAudit"
-                    @start="isAuditModalOpen = true"
-                    @save="savePermanent"
-                    @close="closeAuditSession"
-                />
+        <!-- Step 1: Name-only modal -->
+        <AuditStartModal
+            v-model:open="isAuditModalOpen"
+            @start:session="handleStartSession"
+        />
 
-                <AuditStartModal
-                    v-model:open="isAuditModalOpen"
-                    :olts="olts"
-                    @start:session="startAuditSession"
-                />
+        <!-- Step 2: Device connection modal -->
+        <ConnectDialog
+            v-model:open="isConnectModalOpen"
+            :templates="templates"
+            :is-scanning="isScanning"
+            :is-fetching-banner="isFetchingBanner"
+            :show-trigger="false"
+            @connect="fetchBanner"
+        />
 
-                <div v-if="activeOltId" class="flex items-center gap-3 text-sm text-emerald-600 font-medium">
-                    <MonitorPlay class="h-4 w-4" />
-                    Connected to: {{ scanForm.host }}
-                    <span v-if="lastCheckedAt" class="text-muted-foreground font-normal flex items-center gap-1">
-                        <Clock class="h-3 w-3" />
-                        Last scan: {{ lastCheckedAt.toLocaleTimeString() }}
-                    </span>
-                    <Button variant="ghost" size="sm" class="text-red-500 hover:text-red-600 h-7 px-2" @click="disconnect">
-                        <X class="h-3 w-3 mr-1" /> Disconnect
-                    </Button>
-                </div>
-                <label v-if="hasConnectedOnce && connectionState.isConnected" class="flex items-center gap-2 text-sm cursor-pointer select-none">
-                    <input type="checkbox" :checked="autoScanEnabled" @change="toggleAutoScan" class="h-4 w-4 rounded border-muted-foreground accent-primary" />
-                    Auto-scan (5s)
-                </label>
-            </div>
+        <!-- Step 3: Banner confirmation -->
+        <BannerModal
+            v-model:open="isBannerModalOpen"
+            :banner="capturedBanner"
+            :is-scanning="isScanning"
+            @login="doLogin"
+        />
 
-            <div class="flex gap-2">
-                <Button
-                    v-if="props.templates.find(t => t.is_default)"
-                    variant="outline"
-                    size="lg"
-                    class="h-12 px-6"
-                    :disabled="isScanning || isQuickConnecting || !!activeOltId"
-                    @click="quickConnect"
-                >
-                    <Spinner v-if="isQuickConnecting" class="mr-2" />
-                    <Zap v-else class="mr-2 h-5 w-5 text-yellow-500" />
-                    Quick Connect
-                </Button>
-
-                <div :class="{ 'opacity-50 pointer-events-none': !!activeOltId }">
-                    <ConnectDialog
-                        v-model:open="isModalOpen"
-                        :templates="templates"
-                        :is-scanning="isScanning"
-                        :is-fetching-banner="isFetchingBanner"
-                        @connect="fetchBanner"
-                    />
-                </div>
-            </div>
-
-            <BannerModal
-                v-model:open="isBannerModalOpen"
-                :banner="capturedBanner"
-                :is-scanning="isScanning"
-                @login="doLogin"
-            />
+        <!-- Placeholder: belum ada sesi aktif -->
+        <div
+            v-if="!auditSession"
+            class="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-sidebar-border/70 dark:border-sidebar-border py-24 gap-3 text-muted-foreground cursor-pointer hover:border-primary/50 hover:text-foreground transition-colors"
+            @click="isAuditModalOpen = true"
+        >
+            <ClipboardCheck class="h-10 w-10" />
+            <p class="text-sm">Klik di sini untuk memulai sesi audit</p>
         </div>
 
-        <DiagnosticsPanel
-            :console-output="consoleOutput"
-            :is-scanning="isScanning"
-            :is-running-command="isRunningCommand"
-            @run="runDiagnostic"
-            @clear="consoleOutput = ''"
-        />
+        <!-- Sesi aktif -->
+        <template v-else>
+            <AuditSessionBar
+                :session="auditSession"
+                :is-saving="isSavingAudit"
+                @start="isAuditModalOpen = true"
+                @save="savePermanent"
+                @close="closeAuditSession"
+            />
 
-        <OnuTable
-            :onus="onus"
-            :is-scanning="isScanning || isAutoScanning"
-            :is-connected="connectionState.isConnected"
-            :olt-id="activeOltId"
-            :audit-session="auditSession"
-            :selected-onus="selectedOnus"
-            @save-to-session="saveOnusToSession"
-            @toggle-select="toggleSelectOnu"
-            @select-all="selectAllOnus"
-        />
+            <div v-if="activeOltId" class="flex items-center gap-3 text-sm text-emerald-600 font-medium">
+                <MonitorPlay class="h-4 w-4" />
+                Connected to: {{ scanForm.host }}
+                <span v-if="lastCheckedAt" class="text-muted-foreground font-normal flex items-center gap-1">
+                    <Clock class="h-3 w-3" />
+                    Last scan: {{ lastCheckedAt.toLocaleTimeString() }}
+                </span>
+                <Button variant="ghost" size="sm" class="text-red-500 hover:text-red-600 h-7 px-2" @click="disconnect">
+                    <X class="h-3 w-3 mr-1" /> Disconnect
+                </Button>
+            </div>
+            <label v-if="hasConnectedOnce && connectionState.isConnected" class="flex items-center gap-2 text-sm cursor-pointer select-none">
+                <input type="checkbox" :checked="autoScanEnabled" @change="toggleAutoScan" class="h-4 w-4 rounded border-muted-foreground accent-primary" />
+                Auto-scan (5s)
+            </label>
+
+            <DiagnosticsPanel
+                :console-output="consoleOutput"
+                :is-scanning="isScanning"
+                :is-running-command="isRunningCommand"
+                @run="runDiagnostic"
+                @clear="consoleOutput = ''"
+            />
+
+            <OnuTable
+                :onus="onus"
+                :is-scanning="isScanning || isAutoScanning"
+                :is-connected="connectionState.isConnected"
+                :olt-id="activeOltId"
+                :audit-session="auditSession"
+                :selected-onus="selectedOnus"
+                @save-to-session="saveOnusToSession"
+                @toggle-select="toggleSelectOnu"
+                @select-all="selectAllOnus"
+            />
+        </template>
     </div>
 </template>

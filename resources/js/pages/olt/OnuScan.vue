@@ -45,10 +45,10 @@ const connectionState = useSessionStorage('olt-connection-state', {
 onMounted(async () => {
     if (connectionState.value.isConnected) {
         hasConnectedOnce.value = true;
-        scanForm.host = connectionState.value.host;
-        scanForm.port = connectionState.value.port;
-        scanForm.username = connectionState.value.username;
-        scanForm.password = connectionState.value.password;
+        scanForm.value.host = connectionState.value.host;
+        scanForm.value.port = connectionState.value.port;
+        scanForm.value.username = connectionState.value.username;
+        scanForm.value.password = connectionState.value.password;
         await doLogin();
     }
 });
@@ -62,6 +62,7 @@ const scanForm = ref({
 const fetchBanner = async (data: { host: string; port: number; username: string; password: string }) => {
     if (!data.host || !data.username || !data.password) {
         toast.error('Please fill in all connection details');
+
         return;
     }
 
@@ -124,8 +125,10 @@ const disconnect = () => {
 
 const quickConnect = async () => {
     const template = props.templates.find(t => t.is_default);
+
     if (!template) {
         toast.error('No default template set. Go to Settings to set one.');
+
         return;
     }
 
@@ -168,6 +171,7 @@ const runDiagnostic = async (diag: { label: string; command: string; action: str
     if (!scanForm.value.host) {
         toast.error('Please connect to a device first');
         isModalOpen.value = true;
+
         return;
     }
 
@@ -194,14 +198,20 @@ const runDiagnostic = async (diag: { label: string; command: string; action: str
 };
 
 const startAutoScan = () => {
-    if (autoScanInterval) return;
+    if (autoScanInterval) {
+return;
+}
 
     autoScanInterval = setInterval(async () => {
-        if (!connectionState.value.isConnected || isScanning.value) return;
+        if (!connectionState.value.isConnected || isScanning.value) {
+return;
+}
 
         isAutoScanning.value = true;
+
         try {
             const response = await axios.post('/olt/scan', { olt_id: connectionState.value.activeOltId });
+
             if (response.data.status === 'success') {
                 onus.value = response.data.data;
                 lastCheckedAt.value = new Date();
@@ -221,6 +231,7 @@ const stopAutoScan = () => {
 
 const toggleAutoScan = () => {
     autoScanEnabled.value = !autoScanEnabled.value;
+
     if (autoScanEnabled.value) {
         startAutoScan();
         toast.success('Auto-scan enabled (every 5s)');

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { History, Eye, ChevronLeft, ChevronRight } from '@lucide/vue';
-import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
+import SessionDetailModal from '@/components/olt/SessionDetailModal.vue';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { computed, ref } from 'vue';
 
 interface Session {
     id: number;
@@ -23,7 +25,18 @@ interface PaginationProps {
     total: number;
 }
 
-defineProps<{ sessions: PaginationProps }>();
+const props = defineProps<{ sessions: PaginationProps }>();
+
+const prevLink = computed(() => props.sessions.links[0]);
+const nextLink = computed(() => props.sessions.links.at(-1));
+
+const isDetailModalOpen = ref(false);
+const selectedSessionId = ref<number | null>(null);
+
+const openDetail = (id: number) => {
+    selectedSessionId.value = id;
+    isDetailModalOpen.value = true;
+};
 
 defineOptions({ layout: AppLayout });
 </script>
@@ -34,7 +47,12 @@ defineOptions({ layout: AppLayout });
     <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
         <Heading title="Scan Session" description="View OLT audit sessions" />
 
-        <div v-if="sessions.data.length === 0" class="rounded-xl border border-dashed border-sidebar-border/70 dark:border-sidebar-border py-16 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+        <SessionDetailModal
+            v-model:open="isDetailModalOpen"
+            :session-id="selectedSessionId"
+        />
+
+        <div v-if="!sessions?.data?.length" class="rounded-xl border border-dashed border-sidebar-border/70 dark:border-sidebar-border py-16 flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <History class="h-10 w-10" />
             <p class="text-sm">No session history available yet.</p>
         </div>
@@ -76,10 +94,8 @@ defineOptions({ layout: AppLayout });
                                 </td>
                                 <td class="p-4 align-middle whitespace-nowrap">{{ new Date(session.started_at).toLocaleString() }}</td>
                                 <td class="p-4 align-middle">
-                                    <Button variant="ghost" size="sm" as-child>
-                                        <Link :href="`/audit/sessions/${session.id}`">
-                                            <Eye class="h-4 w-4" />
-                                        </Link>
+                                    <Button variant="ghost" size="sm" @click="openDetail(session.id)">
+                                        <Eye class="h-4 w-4" />
                                     </Button>
                                 </td>
                             </tr>
@@ -90,8 +106,8 @@ defineOptions({ layout: AppLayout });
 
             <!-- Pagination -->
             <div v-if="sessions.last_page > 1" class="flex items-center justify-center gap-2 py-4">
-                <Button variant="outline" size="icon" :disabled="!sessions.links[0].url" as-child>
-                    <Link v-if="sessions.links[0].url" :href="sessions.links[0].url">
+                <Button variant="outline" size="icon" :disabled="!prevLink?.url" as-child>
+                    <Link v-if="prevLink?.url" :href="prevLink.url">
                         <ChevronLeft class="h-4 w-4" />
                     </Link>
                     <span v-else><ChevronLeft class="h-4 w-4" /></span>
@@ -106,8 +122,8 @@ defineOptions({ layout: AppLayout });
                     </template>
                 </div>
 
-                <Button variant="outline" size="icon" :disabled="!sessions.links[sessions.links.length - 1].url" as-child>
-                    <Link v-if="sessions.links[sessions.links.length - 1].url" :href="sessions.links[sessions.links.length - 1].url">
+                <Button variant="outline" size="icon" :disabled="!nextLink?.url" as-child>
+                    <Link v-if="nextLink?.url" :href="nextLink.url">
                         <ChevronRight class="h-4 w-4" />
                     </Link>
                     <span v-else><ChevronRight class="h-4 w-4" /></span>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Spinner } from '@/components/ui/spinner';
 
 defineProps<{
     open: boolean;

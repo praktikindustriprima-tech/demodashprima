@@ -5,6 +5,11 @@ import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
@@ -16,13 +21,8 @@ import {
     SidebarMenuSubButton,
     SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { dashboard } from '@/routes';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
+import { dashboard } from '@/routes';
 
 const { isCurrentUrl } = useCurrentUrl();
 

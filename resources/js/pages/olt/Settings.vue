@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { Settings, Plus, Save, Trash2, ShieldCheck, Globe, Hash, User, Lock, BookTemplate, Star } from '@lucide/vue';
-import AppLayout from '@/layouts/AppLayout.vue';
+import { Settings, Plus, Save, Trash2, ShieldCheck, Globe, Hash, User, Lock, BookTemplate, MoreVertical, Check } from '@lucide/vue';
+import { ref } from 'vue';
+import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'vue-sonner';
+import AppLayout from '@/layouts/AppLayout.vue';
 
 interface OltTemplate {
     id: number; name: string; host: string; port: number; username: string; is_default: boolean;
@@ -22,7 +23,9 @@ const templateForm = useForm({ name: '', host: '', port: 23, username: '', passw
 
 const submitTemplate = () => {
     templateForm.post('/olt/templates', {
-        onSuccess: () => { toast.success('Template saved'); templateForm.reset(); },
+        onSuccess: () => {
+ toast.success('Template saved'); templateForm.reset(); 
+},
         onError: () => toast.error('Failed to save template'),
     });
 };
@@ -110,7 +113,7 @@ defineOptions({ layout: AppLayout });
                 <Card>
                     <CardHeader>
                         <CardTitle>Saved Templates</CardTitle>
-                        <CardDescription>Click the star to set as default for Quick Connect.</CardDescription>
+                        <CardDescription>Use the menu to set a template as default for Quick Connect.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div class="space-y-3">
@@ -127,12 +130,23 @@ defineOptions({ layout: AppLayout });
                                     <p class="text-xs text-muted-foreground mt-1">{{ t.host }}:{{ t.port }} · {{ t.username }}</p>
                                 </div>
                                 <div class="flex gap-1">
-                                    <Button variant="ghost" size="icon" :class="t.is_default ? 'text-yellow-500' : 'text-muted-foreground'" @click="setDefault(t.id)">
-                                        <Star class="h-4 w-4" :fill="t.is_default ? 'currentColor' : 'none'" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" class="text-red-500 hover:text-red-600" @click="deleteTemplate(t.id)">
-                                        <Trash2 class="h-4 w-4" />
-                                    </Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger as-child>
+                                            <Button variant="ghost" size="icon" class="text-muted-foreground">
+                                                <MoreVertical class="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem @click="setDefault(t.id)">
+                                                <Check class="mr-2 h-4 w-4" :class="t.is_default ? 'text-primary' : 'text-transparent'" />
+                                                Set as Default
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem class="text-red-500 focus:text-red-500" @click="deleteTemplate(t.id)">
+                                                <Trash2 class="mr-2 h-4 w-4" />
+                                                Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
                             </div>
                         </div>

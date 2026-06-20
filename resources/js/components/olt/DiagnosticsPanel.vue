@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { X, HardDrive, Info, Cpu, Terminal, Wind, Zap } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { X, HardDrive, Info, Cpu, Terminal, Wind, Zap } from '@lucide/vue';
 
 defineProps<{
     consoleOutput: string;

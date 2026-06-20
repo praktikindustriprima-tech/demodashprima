@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditSession;
 use App\Models\Olt;
 use App\Models\OltHistory;
 use App\Models\OltTemplate;
@@ -290,7 +291,18 @@ class OltController extends Controller
      */
     public function sessionHistory()
     {
-        return Inertia::render('olt/SessionHistory');
+        $sessions = AuditSession::with('olt')
+            ->where('user_id', auth()->id())
+            ->latest()
+            ->paginate(20);
+
+        return Inertia::render('olt/SessionHistory', ['sessions' => [
+            'data' => $sessions->items(),
+            'current_page' => $sessions->currentPage(),
+            'last_page' => $sessions->lastPage(),
+            'links' => $sessions->links(),
+            'total' => $sessions->total(),
+        ]]);
     }
 
     /**

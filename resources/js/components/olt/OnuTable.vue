@@ -215,9 +215,11 @@ const printTable = () => {
             </div>
         </div>
 
-        <div v-if="auditSession && selectedOnus.size > 0" class="flex items-center justify-between border-t border-sidebar-border/70 bg-muted/30 px-4 py-3">
-            <span class="text-sm text-muted-foreground">{{ selectedOnus.size }} ONU dipilih</span>
-            <Button size="sm" @click="emit('save-to-session', props.onus.filter(o => selectedOnus.has(o.sn)))">
+        <div v-if="auditSession && props.onus.length > 0" class="flex items-center justify-between border-t border-sidebar-border/70 bg-muted/30 px-4 py-3">
+            <span class="text-sm text-muted-foreground">
+                {{ selectedOnus.size > 0 ? `${selectedOnus.size} ONU dipilih` : `${props.onus.length} ONU tersedia` }}
+            </span>
+            <Button size="sm" @click="emit('save-to-session', selectedOnus.size > 0 ? props.onus.filter(o => selectedOnus.has(o.sn)) : props.onus)">
                 <BookmarkPlus class="mr-2 h-4 w-4" />
                 Simpan ke Sesi
             </Button>

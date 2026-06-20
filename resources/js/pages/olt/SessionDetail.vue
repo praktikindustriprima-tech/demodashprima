@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, ClipboardCheck, Printer, FileDown } from '@lucide/vue';
-import AppLayout from '@/layouts/AppLayout.vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { printToPdf, exportToExcel } from '@/utils';
 
 interface Onu {

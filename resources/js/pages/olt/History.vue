@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { History, FileSpreadsheet, Printer, Filter, ChevronLeft, ChevronRight, Trash2 } from '@lucide/vue';
-import AppLayout from '@/layouts/AppLayout.vue';
+import { computed, ref, watch } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import AppLayout from '@/layouts/AppLayout.vue';
 
 interface HistoryItem {
     id: number;
@@ -41,6 +41,7 @@ const selectedFilter = ref(typeof props.filters.filter === 'string' ? props.filt
 
 const filterLabel = computed(() => {
     const labels: Record<string, string> = { all: 'All History', daily: 'Today', monthly: 'This Month' };
+
     return labels[selectedFilter.value] || selectedFilter.value;
 });
 
@@ -53,9 +54,11 @@ watch(selectedFilter, (value) => {
 
 const exportExcel = () => {
     const url = new URL('/olt/history/export', window.location.origin);
+
     if (selectedFilter.value !== 'all') {
         url.searchParams.append('filter', selectedFilter.value);
     }
+
     window.location.href = url.toString();
 };
 

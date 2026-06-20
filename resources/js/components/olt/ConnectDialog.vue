@@ -1,23 +1,26 @@
 <script setup lang="ts">
+import { RefreshCw } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { RefreshCw } from '@lucide/vue';
+import { Spinner } from '@/components/ui/spinner';
 
 interface Template {
     id: number; name: string; host: string; port: number; username: string; password: string; is_default: boolean;
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
     open: boolean;
     isScanning: boolean;
     isFetchingBanner: boolean;
     templates: Template[];
-}>();
+    showTrigger?: boolean;
+}>(), {
+    showTrigger: true,
+});
 
 const emit = defineEmits<{
     'update:open': [value: boolean];
@@ -31,15 +34,21 @@ const username = ref('admin');
 const password = ref('');
 
 watch(selectedTemplateId, (val) => {
-    if (val === 'manual') return;
+    if (val === 'manual') {
+return;
+}
+
     const t = props.templates.find(t => t.id === Number(val));
-    if (t) { host.value = t.host; port.value = String(t.port); username.value = t.username; password.value = t.password; }
+
+    if (t) {
+ host.value = t.host; port.value = String(t.port); username.value = t.username; password.value = t.password; 
+}
 });
 </script>
 
 <template>
     <Dialog :open="open" @update:open="emit('update:open', $event)">
-        <DialogTrigger as-child>
+        <DialogTrigger v-if="showTrigger" as-child>
             <Button size="lg" class="h-12 px-8">
                 <Spinner v-if="isScanning" class="mr-2" />
                 <RefreshCw v-else class="mr-2 h-5 w-5" />
