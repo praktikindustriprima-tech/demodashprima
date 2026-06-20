@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { History, Eye, ChevronLeft, ChevronRight } from '@lucide/vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { Square, Eye, ChevronLeft, ChevronRight, History } from '@lucide/vue';
+import { computed, ref } from 'vue';
+import axios from 'axios';
+import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import SessionDetailModal from '@/components/olt/SessionDetailModal.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { computed, ref } from 'vue';
 
 interface Session {
     id: number;
@@ -32,10 +36,24 @@ const nextLink = computed(() => props.sessions.links.at(-1));
 
 const isDetailModalOpen = ref(false);
 const selectedSessionId = ref<number | null>(null);
+const endingSessionId = ref<number | null>(null);
 
 const openDetail = (id: number) => {
     selectedSessionId.value = id;
     isDetailModalOpen.value = true;
+};
+
+const endSession = async (id: number) => {
+    endingSessionId.value = id;
+    try {
+        await axios.post(`/audit/sessions/${id}/complete`);
+        toast.success('Sesi berhasil diakhiri');
+        router.reload({ only: ['sessions'] });
+    } catch (error: any) {
+        toast.error(error.response?.data?.message || 'Gagal mengakhiri sesi');
+    } finally {
+        endingSessionId.value = null;
+    }
 };
 
 defineOptions({ layout: AppLayout });
@@ -94,9 +112,28 @@ defineOptions({ layout: AppLayout });
                                 </td>
                                 <td class="p-4 align-middle whitespace-nowrap">{{ new Date(session.started_at).toLocaleString() }}</td>
                                 <td class="p-4 align-middle">
-                                    <Button variant="ghost" size="sm" @click="openDetail(session.id)">
-                                        <Eye class="h-4 w-4" />
-                                    </Button>
+                                    <div class="flex items-center gap-1">
+                                        <Button variant="ghost" size="sm" @click="openDetail(session.id)">
+                                            <Eye class="h-4 w-4" />
+                                        </Button>
+                                        <TooltipProvider :delay-duration="0">
+                                            <Tooltip>
+                                                <TooltipTrigger as-child>
+                                                    <Button
+                                                        v-if="session.status !== 'completed'"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        :disabled="endingSessionId === session.id"
+                                                        @click="endSession(session.id)"
+                                                    >
+                                                        <Spinner v-if="endingSessionId === session.id" class="h-4 w-4 text-destructive" />
+                                                        <Square v-else class="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>Akhiri Sesi</TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
