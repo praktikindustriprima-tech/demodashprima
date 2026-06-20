@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { MonitorPlay, X, Zap, Clock } from '@lucide/vue';
-import { useSessionStorage } from '@vueuse/core';
+import { useSessionStorage, useLocalStorage } from '@vueuse/core';
 import axios from 'axios';
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { toast } from 'vue-sonner';
@@ -42,6 +42,8 @@ const connectionState = useSessionStorage('olt-connection-state', {
     isConnected: false,
 });
 
+const autoReconnect = useLocalStorage('olt-auto-reconnect', true);
+
 onMounted(async () => {
     if (connectionState.value.isConnected) {
         hasConnectedOnce.value = true;
@@ -49,7 +51,9 @@ onMounted(async () => {
         scanForm.value.port = connectionState.value.port;
         scanForm.value.username = connectionState.value.username;
         scanForm.value.password = connectionState.value.password;
-        await doLogin();
+        if (autoReconnect.value) {
+            await doLogin();
+        }
     }
 });
 

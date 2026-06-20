@@ -2,6 +2,7 @@
 import { Head, useForm } from '@inertiajs/vue3';
 import { Settings, Plus, Save, Trash2, ShieldCheck, Globe, Hash, User, Lock, BookTemplate, MoreVertical, Check } from '@lucide/vue';
 import { ref } from 'vue';
+import { useLocalStorage } from '@vueuse/core';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +42,8 @@ const setDefault = (id: number) => {
         onSuccess: () => toast.success('Default template updated'),
     });
 };
+
+const autoReconnect = useLocalStorage('olt-auto-reconnect', true);
 
 defineOptions({ layout: AppLayout });
 </script>
@@ -116,7 +119,6 @@ defineOptions({ layout: AppLayout });
                     <CardHeader>
                         <CardTitle>Saved Templates</CardTitle>
                         <CardDescription>Use the menu to set a template as default for Quick Connect.</CardDescription>
-                        <CardDescription>Use the menu to set a template as default for Quick Connect.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div class="space-y-3">
@@ -158,11 +160,39 @@ defineOptions({ layout: AppLayout });
             </div>
         </div>
 
+        <!-- Quick Scan Preferences -->
+        <div class="flex flex-col gap-4">
+            <h2 class="text-base font-semibold">Preferensi</h2>
+            <Card>
+                <CardContent>
+                    <label class="flex items-center justify-between cursor-pointer select-none">
+                        <div>
+                            <p class="font-medium text-sm">Auto-reconnect saat halaman dimuat</p>
+                            <p class="text-xs text-muted-foreground mt-0.5">Otomatis menyambung kembali ke OLT terakhir saat membuka laman Quick Scan.</p>
+                        </div>
+                        <button
+                            type="button"
+                            role="switch"
+                            :aria-checked="autoReconnect"
+                            :class="autoReconnect ? 'bg-primary' : 'bg-input'"
+                            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            @click="autoReconnect = !autoReconnect"
+                        >
+                            <span
+                                :class="autoReconnect ? 'translate-x-5' : 'translate-x-0'"
+                                class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform"
+                            />
+                        </button>
+                    </label>
+                </CardContent>
+            </Card>
+        </div>
+
         <div class="rounded-lg bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
             <div class="flex items-center gap-2 font-medium mb-1">
-                <ShieldCheck class="h-4 w-4" /> Security Note
+                <ShieldCheck class="h-4 w-4" /> Catatan Keamanan
             </div>
-            Passwords are encrypted using AES-256 before being stored in the database.
+            Kata sandi dienkripsi menggunakan AES-256 sebelum disimpan di database.
         </div>
     </div>
 </template>
