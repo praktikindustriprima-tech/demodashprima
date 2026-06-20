@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ClipboardCheck, Printer, FileDown } from '@lucide/vue';
+import { ClipboardCheck, Printer, FileDown, Square } from '@lucide/vue';
 import axios from 'axios';
 import { ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
@@ -35,10 +35,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     'update:open': [value: boolean];
+    'stopped': [];
 }>();
 
 const session = ref<Session | null>(null);
 const isLoading = ref(false);
+const isStopping = ref(false);
 
 const fetchSession = async (id: number) => {
     isLoading.value = true;
@@ -83,6 +85,22 @@ const printTable = () => {
     printToPdf(session.value.onus, onuColumns, {
         title: `Audit Session: ${session.value.name}`,
     });
+};
+
+const stopSession = async () => {
+    if (!session.value) return;
+    isStopping.value = true;
+    try {
+        await axios.post(`/audit/sessions/${session.value.id}/complete`);
+        session.value.status = 'completed';
+        toast.success('Sesi berhasil diakhiri');
+        emit('update:open', false);
+        emit('stopped');
+    } catch (error: any) {
+        toast.error(error.response?.data?.message || 'Gagal mengakhiri sesi');
+    } finally {
+        isStopping.value = false;
+    }
 };
 </script>
 
@@ -129,6 +147,17 @@ const printTable = () => {
 
                 <!-- Actions -->
                 <div class="flex gap-2">
+                    <Button
+                        v-if="session.status !== 'completed'"
+                        variant="destructive"
+                        size="sm"
+                        @click="stopSession"
+                        :disabled="isStopping"
+                    >
+                        <Spinner v-if="isStopping" class="mr-2 h-4 w-4" />
+                        <Square v-else class="mr-2 h-4 w-4" />
+                        {{ isStopping ? 'Mengakhiri...' : 'Akhiri Sesi' }}
+                    </Button>
                     <Button variant="outline" size="sm" @click="exportCsv" :disabled="session.onus.length === 0">
                         <FileDown class="mr-2 h-4 w-4" />
                         Export CSV

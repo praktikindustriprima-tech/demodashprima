@@ -68,6 +68,7 @@ defineOptions({ layout: AppLayout });
         <SessionDetailModal
             v-model:open="isDetailModalOpen"
             :session-id="selectedSessionId"
+            @stopped="router.reload({ only: ['sessions'] })"
         />
 
         <div v-if="!sessions?.data?.length" class="rounded-xl border border-dashed border-sidebar-border/70 dark:border-sidebar-border py-16 flex flex-col items-center justify-center gap-3 text-muted-foreground">
