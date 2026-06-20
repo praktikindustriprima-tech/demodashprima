@@ -113,11 +113,11 @@ const infoLabels: Record<string, string> = {
     service_profile: 'Service Profile',
 };
 
-const exportToCsv = () => {
-    exportToExcel(props.onus, onuColumns, {
-        filename: `onu_list_${new Date().toISOString().slice(0, 10)}.csv`,
+const exportToCsv = async () => {
+    await exportToExcel(props.onus, onuColumns, {
+        filename: `onu_list_${new Date().toISOString().slice(0, 10)}.xlsx`,
     });
-    toast.success('ONU list exported to CSV');
+    toast.success('ONU list exported to Excel');
 };
 
 const printTable = () => {

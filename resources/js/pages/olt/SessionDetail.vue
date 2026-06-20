@@ -36,9 +36,9 @@ const onuColumns = [
     { key: 'scanned_at' as const, label: 'Scanned At' },
 ];
 
-const exportCsv = () => {
-    exportToExcel(props.session.onus, onuColumns, {
-        filename: `audit_session_${props.session.id}_${new Date().toISOString().slice(0, 10)}.csv`,
+const exportCsv = async () => {
+    await exportToExcel(props.session.onus, onuColumns, {
+        filename: `audit_session_${props.session.id}_${new Date().toISOString().slice(0, 10)}.xlsx`,
     });
 };
 

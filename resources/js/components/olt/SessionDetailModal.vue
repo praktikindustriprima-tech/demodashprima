@@ -73,10 +73,10 @@ const onuColumns = [
     { key: 'scanned_at' as const, label: 'Scanned At' },
 ];
 
-const exportCsv = () => {
+const exportCsv = async () => {
     if (!session.value) return;
-    exportToExcel(session.value.onus, onuColumns, {
-        filename: `audit_session_${session.value.id}_${new Date().toISOString().slice(0, 10)}.csv`,
+    await exportToExcel(session.value.onus, onuColumns, {
+        filename: `audit_session_${session.value.id}_${new Date().toISOString().slice(0, 10)}.xlsx`,
     });
 };
 
@@ -160,7 +160,7 @@ const stopSession = async () => {
                     </Button>
                     <Button variant="outline" size="sm" @click="exportCsv" :disabled="session.onus.length === 0">
                         <FileDown class="mr-2 h-4 w-4" />
-                        Export CSV
+                        Export Excel
                     </Button>
                     <Button variant="outline" size="sm" @click="printTable" :disabled="session.onus.length === 0">
                         <Printer class="mr-2 h-4 w-4" />
