@@ -7,7 +7,7 @@ use App\Http\Controllers\OltTemplateController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/', [OltController::class, 'index'])->name('home');
+    Route::get('/', fn () => redirect()->route('olt.onu-scan'))->name('home');
 
     Route::get('olt/onu-scan', [OltController::class, 'index'])->name('olt.onu-scan');
     Route::get('olt/audit-session', [OltController::class, 'auditSession'])->name('olt.audit-session');
