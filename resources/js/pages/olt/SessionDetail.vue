@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { ArrowLeft, ClipboardCheck, Printer, FileDown } from '@lucide/vue';
+import { useI18n } from 'vue-i18n';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { printToPdf, exportToExcel } from '@/utils';
+
+const { t } = useI18n();
 
 interface Onu {
     olt_index: string;
@@ -29,11 +32,11 @@ interface Session {
 const props = defineProps<{ session: Session }>();
 
 const onuColumns = [
-    { key: 'olt_index' as const, label: 'OLT Index' },
-    { key: 'model' as const, label: 'Model' },
-    { key: 'sn' as const, label: 'Serial Number' },
-    { key: 'pw' as const, label: 'Password' },
-    { key: 'scanned_at' as const, label: 'Scanned At' },
+    { key: 'olt_index' as const, label: t('audit.detail.col.oltIndex') },
+    { key: 'model' as const, label: t('audit.detail.col.model') },
+    { key: 'sn' as const, label: t('audit.detail.col.serialNumber') },
+    { key: 'pw' as const, label: t('audit.detail.col.password') },
+    { key: 'scanned_at' as const, label: t('audit.detail.col.scannedAt') },
 ];
 
 const exportCsv = async () => {
@@ -44,7 +47,7 @@ const exportCsv = async () => {
 
 const printTable = () => {
     printToPdf(props.session.onus, onuColumns, {
-        title: `Audit Session: ${props.session.name}`,
+        title: `${t('audit.detail.printTitle')} ${props.session.name}`,
     });
 };
 
@@ -52,27 +55,27 @@ defineOptions({ layout: AppLayout });
 </script>
 
 <template>
-    <Head :title="`Session: ${session.name}`" />
+    <Head :title="`${t('audit.detail.headTitle')} ${session.name}`" />
 
     <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
         <div class="flex items-center gap-4">
             <Button variant="ghost" size="sm" as-child>
                 <Link href="/olt/history/session">
                     <ArrowLeft class="mr-2 h-4 w-4" />
-                    Kembali
+                    {{ t('audit.detail.back') }}
                 </Link>
             </Button>
-            <Heading :title="session.name" :description="`Audit session #${session.id}`" />
+            <Heading :title="session.name" :description="`${t('audit.detail.headTitle')} #${session.id}`" />
         </div>
 
         <!-- Session Info -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-                <p class="text-xs text-muted-foreground">OLT</p>
+                <p class="text-xs text-muted-foreground">{{ t('audit.detail.oltLabel') }}</p>
                 <p class="font-medium">{{ session.olt?.name || 'N/A' }}</p>
             </div>
             <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-                <p class="text-xs text-muted-foreground">Status</p>
+                <p class="text-xs text-muted-foreground">{{ t('audit.detail.statusLabel') }}</p>
                 <span
                     class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
                     :class="session.status === 'completed'
@@ -83,11 +86,11 @@ defineOptions({ layout: AppLayout });
                 </span>
             </div>
             <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-                <p class="text-xs text-muted-foreground">Jumlah ONU</p>
+                <p class="text-xs text-muted-foreground">{{ t('audit.detail.onuCount') }}</p>
                 <p class="font-medium">{{ session.onu_count }}</p>
             </div>
             <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-                <p class="text-xs text-muted-foreground">Tanggal Mulai</p>
+                <p class="text-xs text-muted-foreground">{{ t('audit.detail.startDate') }}</p>
                 <p class="font-medium">{{ new Date(session.started_at).toLocaleString() }}</p>
             </div>
         </div>
@@ -96,18 +99,18 @@ defineOptions({ layout: AppLayout });
         <div class="flex gap-2">
             <Button variant="outline" size="sm" @click="exportCsv" :disabled="session.onus.length === 0">
                 <FileDown class="mr-2 h-4 w-4" />
-                Export CSV
+                {{ t('audit.detail.exportCsv') }}
             </Button>
             <Button variant="outline" size="sm" @click="printTable" :disabled="session.onus.length === 0">
                 <Printer class="mr-2 h-4 w-4" />
-                Print
+                {{ t('common.print') }}
             </Button>
         </div>
 
         <!-- ONU Table -->
         <div v-if="session.onus.length === 0" class="rounded-xl border border-dashed border-sidebar-border/70 dark:border-sidebar-border py-16 flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <ClipboardCheck class="h-10 w-10" />
-            <p class="text-sm">Tidak ada ONU dalam sesi ini.</p>
+            <p class="text-sm">{{ t('audit.detail.noOnu') }}</p>
         </div>
 
         <div v-else class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border overflow-hidden">
@@ -115,12 +118,12 @@ defineOptions({ layout: AppLayout });
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-sidebar-border/70 bg-muted/50 transition-colors dark:border-sidebar-border">
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">#</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">OLT Index</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Model</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Serial Number</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Password</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Scanned At</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.detail.col.number') }}</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.detail.col.oltIndex') }}</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.detail.col.model') }}</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.detail.col.serialNumber') }}</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.detail.col.password') }}</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.detail.col.scannedAt') }}</th>
                         </tr>
                     </thead>
                     <tbody>

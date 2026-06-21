@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ClipboardCheck, Save, X, Play } from '@lucide/vue';
+import { useI18n } from 'vue-i18n';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -18,6 +19,8 @@ defineProps<{
     isSaving: boolean;
 }>();
 
+const { t } = useI18n();
+
 const emit = defineEmits<{
     start: [];
     save: [];
@@ -30,10 +33,10 @@ const emit = defineEmits<{
     <!-- No active session -->
     <div v-if="!session" class="flex items-center gap-3 rounded-xl border border-dashed border-sidebar-border/70 dark:border-sidebar-border bg-muted/30 px-4 py-3">
         <ClipboardCheck class="h-5 w-5 text-muted-foreground" />
-        <span class="text-sm text-muted-foreground flex-1">Mulai sesi audit untuk mengumpulkan data ONU secara bertahap.</span>
+        <span class="text-sm text-muted-foreground flex-1">{{ t('audit.bar.hint') }}</span>
         <Button variant="outline" size="sm" @click="emit('start')">
             <Play class="mr-2 h-4 w-4" />
-            Mulai Sesi Audit
+            {{ t('audit.bar.startAuditSession') }}
         </Button>
     </div>
 
@@ -47,7 +50,7 @@ const emit = defineEmits<{
                     {{ session.onus.length }} ONU
                 </span>
             </div>
-            <p class="text-xs text-muted-foreground truncate">OLT: {{ session.oltName }}</p>
+            <p class="text-xs text-muted-foreground truncate">{{ t('audit.bar.oltLabel') }} {{ session.oltName }}</p>
         </div>
         <Button
             variant="outline"
@@ -57,7 +60,7 @@ const emit = defineEmits<{
         >
             <Spinner v-if="isSaving" class="mr-2" />
             <Save v-else class="mr-2 h-4 w-4" />
-            {{ isSaving ? 'Menyimpan...' : 'Simpan Permanen' }}
+            {{ isSaving ? t('audit.bar.saving') : t('audit.bar.savePermanent') }}
         </Button>
         <Button variant="ghost" size="sm" class="text-red-500 hover:text-red-600" @click="emit('close')">
             <X class="h-4 w-4" />

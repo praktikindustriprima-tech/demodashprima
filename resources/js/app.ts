@@ -1,5 +1,7 @@
 import { createInertiaApp } from '@inertiajs/vue3';
+import { createApp, h } from 'vue';
 import { initializeTheme } from '@/composables/useAppearance';
+import i18n from '@/i18n';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
@@ -9,6 +11,12 @@ const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
+    setup({ el, App, props, plugin }) {
+        const vueApp = createApp({ render: () => h(App, props) });
+        vueApp.use(plugin);
+        vueApp.use(i18n);
+        vueApp.mount(el);
+    },
     layout: (name) => {
         switch (true) {
             case name === 'Welcome':

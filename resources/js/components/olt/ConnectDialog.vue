@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { RefreshCw } from '@lucide/vue';
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,8 @@ const emit = defineEmits<{
     'connect': [data: { host: string; port: number; username: string; password: string }];
 }>();
 
+const { t } = useI18n();
+
 const selectedTemplateId = ref<string>(
     props.templates.find(t => t.is_default)?.id ? String(props.templates.find(t => t.is_default)!.id) : 'manual'
 );
@@ -43,10 +46,10 @@ watch(selectedTemplateId, (val) => {
 return;
 }
 
-    const t = props.templates.find(t => t.id === Number(val));
+    const tmpl = props.templates.find(tpl => tpl.id === Number(val));
 
-    if (t) {
- isApplyingTemplate = true; host.value = t.host; port.value = String(t.port); username.value = t.username; password.value = t.password; isApplyingTemplate = false;
+    if (tmpl) {
+ isApplyingTemplate = true; host.value = tmpl.host; port.value = String(tmpl.port); username.value = tmpl.username; password.value = tmpl.password; isApplyingTemplate = false;
 }
 }, { immediate: true });
 
@@ -67,21 +70,21 @@ watch([host, port, username, password], () => {
             <Button size="lg" class="h-12 px-8">
                 <Spinner v-if="isScanning" class="mr-2" />
                 <RefreshCw v-else class="mr-2 h-5 w-5" />
-                {{ isScanning ? 'Scanning...' : 'Scan Device' }}
+                {{ isScanning ? t('connectDialog.scanning') : t('connectDialog.scanDevice') }}
             </Button>
         </DialogTrigger>
         <DialogContent class="sm:max-w-[425px]">
             <DialogHeader>
-                <DialogTitle>Connect to OLT Device</DialogTitle>
-                <DialogDescription>Select a template or fill in manually.</DialogDescription>
+                <DialogTitle>{{ t('connectDialog.title') }}</DialogTitle>
+                <DialogDescription>{{ t('connectDialog.description') }}</DialogDescription>
             </DialogHeader>
             <div class="grid gap-4 py-4">
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right">Template</Label>
+                    <Label class="text-right">{{ t('connectDialog.template') }}</Label>
                     <Select v-model="selectedTemplateId" class="col-span-3">
-                        <SelectTrigger class="col-span-3"><SelectValue placeholder="Manual input" /></SelectTrigger>
+                        <SelectTrigger class="col-span-3"><SelectValue :placeholder="t('connectDialog.manualInput')" /></SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="manual">— Manual —</SelectItem>
+                            <SelectItem value="manual">{{ t('connectDialog.manual') }}</SelectItem>
                             <SelectItem v-for="t in templates" :key="t.id" :value="String(t.id)">
                                 {{ t.name }} {{ t.is_default ? '★' : '' }}
                             </SelectItem>
@@ -90,15 +93,15 @@ watch([host, port, username, password], () => {
                 </div>
                 <div class="flex items-center gap-3 px-4">
                     <Separator class="flex-1" />
-                    <span class="text-xs text-muted-foreground">atau isi manual</span>
+                    <span class="text-xs text-muted-foreground">{{ t('connectDialog.orFillManual') }}</span>
                     <Separator class="flex-1" />
                 </div>
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right">IP</Label>
-                    <Input v-model="host" placeholder="192.168.1.1" class="col-span-3" />
+                    <Label class="text-right">{{ t('connectDialog.ip') }}</Label>
+                    <Input v-model="host" :placeholder="t('connectDialog.ipPlaceholder')" class="col-span-3" />
                 </div>
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right">Port</Label>
+                    <Label class="text-right">{{ t('connectDialog.port') }}</Label>
                     <Select v-model="port">
                         <SelectTrigger class="col-span-3"><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -109,19 +112,19 @@ watch([host, port, username, password], () => {
                     </Select>
                 </div>
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right">Username</Label>
-                    <Input v-model="username" placeholder="admin" class="col-span-3" />
+                    <Label class="text-right">{{ t('connectDialog.username') }}</Label>
+                    <Input v-model="username" :placeholder="t('connectDialog.usernamePlaceholder')" class="col-span-3" />
                 </div>
                 <div class="grid grid-cols-4 items-center gap-4">
-                    <Label class="text-right">Password</Label>
-                    <Input v-model="password" type="password" placeholder="••••••••" class="col-span-3" />
+                    <Label class="text-right">{{ t('connectDialog.password') }}</Label>
+                    <Input v-model="password" type="password" :placeholder="t('connectDialog.passwordPlaceholder')" class="col-span-3" />
                 </div>
             </div>
             <DialogFooter>
-                <Button variant="outline" @click="emit('update:open', false)">Cancel</Button>
+                <Button variant="outline" @click="emit('update:open', false)">{{ t('connectDialog.cancel') }}</Button>
                 <Button @click="emit('connect', { host, port: Number(port), username, password })" :disabled="isFetchingBanner">
                     <Spinner v-if="isFetchingBanner" class="mr-2" />
-                    {{ isFetchingBanner ? 'Connecting...' : 'Connect' }}
+                    {{ isFetchingBanner ? t('connectDialog.connecting') : t('connectDialog.connect') }}
                 </Button>
             </DialogFooter>
         </DialogContent>

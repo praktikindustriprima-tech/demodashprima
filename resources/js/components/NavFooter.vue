@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import {
     SidebarGroup,
     SidebarGroupContent,
@@ -8,6 +9,8 @@ import {
 } from '@/components/ui/sidebar';
 import { toUrl } from '@/lib/utils';
 import type { NavItem } from '@/types';
+
+const { t } = useI18n();
 
 type Props = {
     items: NavItem[];
@@ -34,7 +37,7 @@ defineProps<Props>();
                             rel="noopener noreferrer"
                         >
                             <component :is="item.icon" />
-                            <span>{{ item.title }}</span>
+                            <span>{{ t(item.title) }}</span>
                         </a>
                     </SidebarMenuButton>
                 </SidebarMenuItem>

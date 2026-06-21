@@ -4,6 +4,7 @@ import { MonitorPlay, X, Clock, ClipboardCheck } from '@lucide/vue';
 import { useSessionStorage } from '@vueuse/core';
 import axios from 'axios';
 import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
 import AuditSessionBar from '@/components/olt/AuditSessionBar.vue';
@@ -15,6 +16,8 @@ import OnuTable from '@/components/olt/OnuTable.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import AppLayout from '@/layouts/AppLayout.vue';
+
+const { t } = useI18n();
 
 interface OltOption { id: number; name: string; host: string; }
 interface Template { id: number; name: string; host: string; port: number; username: string; is_default: boolean; }
@@ -79,7 +82,7 @@ onMounted(async () => {
                 startedAt: new Date(s.started_at),
             };
             hasActiveSession = true;
-            toast.info(`Anda memiliki sesi audit aktif: ${s.name}`);
+            toast.info(`${t('audit.toast.activeSession')} ${s.name}`);
         }
     } catch {
         // No active session
@@ -98,7 +101,7 @@ onMounted(async () => {
 
 const scanForm = ref({
     id: null as number | null,
-    name: 'Audit Session OLT',
+    name: t('audit.defaultName'),
     host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE',
 });
 
@@ -113,7 +116,7 @@ const handleStartSession = (data: { name: string }) => {
 // Step 3: User fills connection → fetch banner
 const fetchBanner = async (data: { host: string; port: number; username: string; password: string }) => {
     if (!data.host || !data.username || !data.password) {
-        toast.error('Please fill in all connection details');
+        toast.error(t('audit.toast.fillAllDetails'));
 
         return;
     }
@@ -129,10 +132,10 @@ const fetchBanner = async (data: { host: string; port: number; username: string;
             isConnectModalOpen.value = false;
             isBannerModalOpen.value = true;
         } else {
-            toast.error(response.data.message || 'Failed to reach OLT');
+            toast.error(response.data.message || t('audit.toast.reachFailed'));
         }
     } catch (error: any) {
-        toast.error(error.response?.data?.message || 'OLT is unreachable');
+        toast.error(error.response?.data?.message || t('audit.toast.unreachable'));
     } finally {
         isFetchingBanner.value = false;
     }
@@ -164,15 +167,15 @@ const doLogin = async (createSession = true) => {
             if (createSession) {
                 const olt = props.olts.find(o => o.id === scanResponse.data.olt_id);
                 await createAuditSession(scanResponse.data.olt_id, olt?.name || 'Unknown');
-                toast.success('Login successful, sesi audit dimulai');
+                toast.success(t('audit.toast.loginStarted'));
             } else {
-                toast.success('Reconnected to OLT');
+                toast.success(t('audit.toast.reconnected'));
             }
         } else {
-            toast.error(scanResponse.data.message || 'Login failed');
+            toast.error(scanResponse.data.message || t('audit.toast.loginFailed'));
         }
     } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Handshake failed');
+        toast.error(error.response?.data?.message || t('audit.toast.handshakeFailed'));
     } finally {
         isScanning.value = false;
     }
@@ -198,13 +201,13 @@ const createAuditSession = async (oltId: number, oltName: string) => {
             pendingSessionName.value = '';
         }
     } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Gagal membuat sesi audit');
+        toast.error(error.response?.data?.message || t('audit.toast.createFailed'));
     }
 };
 
 const disconnect = () => {
     activeOltId.value = null; onus.value = []; consoleOutput.value = '';
-    scanForm.value = { id: null, name: 'Audit Session OLT', host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE' };
+    scanForm.value = { id: null, name: t('audit.defaultName'), host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE' };
     connectionState.value = { activeOltId: null, host: '', port: 23, username: '', password: '', isConnected: false };
 };
 
@@ -218,7 +221,7 @@ return;
     auditSession.value.onus.push(...newOnus);
     selectedOnus.value.clear();
 
-    toast.success(`${newOnus.length} ONU ditambahkan ke sesi`);
+    toast.success(`${newOnus.length} ${t('audit.toast.onuAdded')}`);
 };
 
 const savePermanent = async () => {
@@ -234,11 +237,11 @@ return;
         });
 
         if (response.data.status === 'success') {
-            toast.success(`${response.data.data.onu_count} ONU disimpan permanen`);
+            toast.success(`${response.data.data.onu_count} ${t('audit.toast.onuSaved')}`);
             closeAuditSession();
         }
     } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Gagal menyimpan');
+        toast.error(error.response?.data?.message || t('audit.toast.saveFailed'));
     } finally {
         isSavingAudit.value = false;
     }
@@ -271,7 +274,7 @@ const selectAllOnus = () => {
 
 const runDiagnostic = async (diag: { label: string; command: string; action: string }) => {
     if (!scanForm.value.host) {
-        toast.error('Please connect to a device first');
+        toast.error(t('audit.toast.connectFirst'));
 
         return;
     }
@@ -284,13 +287,13 @@ const runDiagnostic = async (diag: { label: string; command: string; action: str
 
         if (response.data.status === 'success') {
             consoleOutput.value = response.data.output;
-            toast.success(`${diag.label} command executed`);
+            toast.success(`${diag.label} ${t('audit.toast.commandExecuted')}`);
         } else {
             consoleOutput.value += `Error: ${response.data.message}`;
-            toast.error(response.data.message || 'Failed');
+            toast.error(response.data.message || t('common.failed'));
         }
     } catch (error: any) {
-        const msg = error.response?.data?.message || 'Failed to connect to OLT';
+        const msg = error.response?.data?.message || t('audit.toast.connectOltFailed');
         consoleOutput.value += `Error: ${msg}`;
         toast.error(msg);
     } finally {
@@ -335,10 +338,10 @@ const toggleAutoScan = () => {
 
     if (autoScanEnabled.value) {
         startAutoScan();
-        toast.success('Auto-scan enabled (every 5s)');
+        toast.success(t('audit.toast.autoScanEnabled'));
     } else {
         stopAutoScan();
-        toast.info('Auto-scan disabled');
+        toast.info(t('audit.toast.autoScanDisabled'));
     }
 };
 
@@ -358,10 +361,10 @@ defineOptions({ layout: AppLayout });
 </script>
 
 <template>
-    <Head title="Audit Session" />
+    <Head :title="t('audit.title')" />
 
     <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-        <Heading title="Audit Session" description="Kumpulkan data ONU secara bertahap dalam sesi audit" />
+        <Heading :title="t('audit.heading')" :description="t('audit.description')" />
 
         <!-- Step 1: Name-only modal -->
         <AuditStartModal
@@ -394,7 +397,7 @@ defineOptions({ layout: AppLayout });
             @click="isAuditModalOpen = true"
         >
             <ClipboardCheck class="h-10 w-10" />
-            <p class="text-sm">Klik di sini untuk memulai sesi audit</p>
+            <p class="text-sm">{{ t('audit.clickToStart') }}</p>
         </div>
 
         <!-- Sesi aktif -->
@@ -409,18 +412,18 @@ defineOptions({ layout: AppLayout });
 
             <div v-if="activeOltId" class="flex items-center gap-3 text-sm text-emerald-600 font-medium">
                 <MonitorPlay class="h-4 w-4" />
-                Connected to: {{ scanForm.host }}
+                {{ t('audit.connectedTo') }} {{ scanForm.host }}
                 <span v-if="lastCheckedAt" class="text-muted-foreground font-normal flex items-center gap-1">
                     <Clock class="h-3 w-3" />
-                    Last scan: {{ lastCheckedAt.toLocaleTimeString() }}
+                    {{ t('audit.lastScan') }} {{ lastCheckedAt.toLocaleTimeString() }}
                 </span>
                 <Button variant="ghost" size="sm" class="text-red-500 hover:text-red-600 h-7 px-2" @click="disconnect">
-                    <X class="h-3 w-3 mr-1" /> Disconnect
+                    <X class="h-3 w-3 mr-1" /> {{ t('audit.disconnect') }}
                 </Button>
             </div>
             <label v-if="hasConnectedOnce && connectionState.isConnected" class="flex items-center gap-2 text-sm cursor-pointer select-none">
                 <input type="checkbox" :checked="autoScanEnabled" @change="toggleAutoScan" class="h-4 w-4 rounded border-muted-foreground accent-primary" />
-                Auto-scan (5s)
+                {{ t('audit.autoScan') }}
             </label>
 
             <DiagnosticsPanel

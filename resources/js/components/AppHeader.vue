@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { BookOpen, Folder, LayoutGrid, Menu, Search } from '@lucide/vue';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import AppLogo from '@/components/AppLogo.vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
@@ -38,6 +39,8 @@ import { toUrl } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem, NavItem } from '@/types';
 
+const { t } = useI18n();
+
 type Props = {
     breadcrumbs?: BreadcrumbItem[];
 };
@@ -55,7 +58,7 @@ const activeItemStyles =
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'header.nav.dashboard',
         href: dashboard(),
         icon: LayoutGrid,
     },
@@ -63,12 +66,12 @@ const mainNavItems: NavItem[] = [
 
 const rightNavItems: NavItem[] = [
     {
-        title: 'Repository',
+        title: 'header.nav.repository',
         href: 'https://github.com/laravel/vue-starter-kit',
         icon: Folder,
     },
     {
-        title: 'Documentation',
+        title: 'header.nav.documentation',
         href: 'https://laravel.com/docs/starter-kits#vue',
         icon: BookOpen,
     },
@@ -93,7 +96,7 @@ const rightNavItems: NavItem[] = [
                         </SheetTrigger>
                         <SheetContent side="left" class="w-[300px] p-6">
                             <SheetTitle class="sr-only"
-                                >Navigation menu</SheetTitle
+                                >{{ t('header.navigationMenu') }}</SheetTitle
                             >
                             <SheetHeader class="flex justify-start text-left">
                                 <AppLogoIcon
@@ -121,7 +124,7 @@ const rightNavItems: NavItem[] = [
                                             :is="item.icon"
                                             class="h-5 w-5"
                                         />
-                                        {{ item.title }}
+                                        {{ t(item.title) }}
                                     </Link>
                                 </nav>
                                 <div class="flex flex-col space-y-4">
@@ -138,7 +141,7 @@ const rightNavItems: NavItem[] = [
                                             :is="item.icon"
                                             class="h-5 w-5"
                                         />
-                                        <span>{{ item.title }}</span>
+                                        <span>{{ t(item.title) }}</span>
                                     </a>
                                 </div>
                             </div>
@@ -177,7 +180,7 @@ const rightNavItems: NavItem[] = [
                                         :is="item.icon"
                                         class="mr-2 h-4 w-4"
                                     />
-                                    {{ item.title }}
+                                    {{ t(item.title) }}
                                 </Link>
                                 <div
                                     v-if="isCurrentUrl(item.href)"
@@ -220,7 +223,7 @@ const rightNavItems: NavItem[] = [
                                                     rel="noopener noreferrer"
                                                 >
                                                     <span class="sr-only">{{
-                                                        item.title
+                                                        t(item.title)
                                                     }}</span>
                                                     <component
                                                         :is="item.icon"
@@ -230,7 +233,7 @@ const rightNavItems: NavItem[] = [
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p>{{ item.title }}</p>
+                                            <p>{{ t(item.title) }}</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>

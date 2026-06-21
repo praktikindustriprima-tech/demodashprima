@@ -2,6 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { History, FileSpreadsheet, Printer, Filter, ChevronLeft, ChevronRight, Trash2 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +13,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/AppLayout.vue';
+
+const { t } = useI18n();
 
 interface HistoryItem {
     id: number;
@@ -40,7 +43,7 @@ const props = defineProps<{
 const selectedFilter = ref(typeof props.filters.filter === 'string' ? props.filters.filter : 'all');
 
 const filterLabel = computed(() => {
-    const labels: Record<string, string> = { all: 'All History', daily: 'Today', monthly: 'This Month' };
+    const labels: Record<string, string> = { all: t('history.filter.all'), daily: t('history.filter.today'), monthly: t('history.filter.month') };
 
     return labels[selectedFilter.value] || selectedFilter.value;
 });
@@ -88,23 +91,23 @@ defineOptions({
 </script>
 
 <template>
-    <Head title="OLT History" />
+    <Head :title="t('history.title')" />
 
     <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4 print:p-0">
         <div class="flex items-start justify-between print:hidden">
-            <Heading title="OLT History" description="View and export OLT command history" />
+            <Heading :title="t('history.heading')" :description="t('history.description')" />
             <div class="flex items-center gap-2">
                 <Button variant="outline" @click="printHistory">
                     <Printer class="mr-2 h-4 w-4" />
-                    Print
+                    {{ t('common.print') }}
                 </Button>
                 <Button variant="outline" @click="exportExcel">
                     <FileSpreadsheet class="mr-2 h-4 w-4" />
-                    Export Excel
+                    {{ t('history.exportExcel') }}
                 </Button>
                 <Button v-if="history.total > 0" variant="destructive" size="sm" @click="showClearConfirm = true">
                     <Trash2 class="mr-2 h-4 w-4" />
-                    Clear History
+                    {{ t('history.clearHistory') }}
                 </Button>
             </div>
         </div>
@@ -114,25 +117,25 @@ defineOptions({
                 <Filter class="h-4 w-4 text-muted-foreground" />
                 <Select v-model="selectedFilter">
                     <SelectTrigger class="w-[180px]">
-                        <SelectValue placeholder="Filter by date" />
+                        <SelectValue :placeholder="t('history.filterByDate')" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All History</SelectItem>
-                        <SelectItem value="daily">Today</SelectItem>
-                        <SelectItem value="monthly">This Month</SelectItem>
+                        <SelectItem value="all">{{ t('history.filter.all') }}</SelectItem>
+                        <SelectItem value="daily">{{ t('history.filter.today') }}</SelectItem>
+                        <SelectItem value="monthly">{{ t('history.filter.month') }}</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
             
             <div class="text-sm text-muted-foreground">
-                Total: {{ history.total }} entries
+                {{ t('history.totalEntries', { total: history.total }) }}
             </div>
         </div>
 
         <!-- Print Header (Visible only when printing) -->
         <div class="hidden print:block mb-6 text-center">
-            <h1 class="text-2xl font-bold">OLT Command History Report</h1>
-            <p class="text-sm text-gray-500">Generated on: {{ new Date().toLocaleString() }} | Filter: {{ filterLabel }}</p>
+            <h1 class="text-2xl font-bold">{{ t('history.printReportTitle') }}</h1>
+            <p class="text-sm text-gray-500">{{ t('history.printGeneratedOn') }} {{ new Date().toLocaleString() }} | {{ t('history.filterByDate') }}: {{ filterLabel }}</p>
         </div>
 
         <div class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border overflow-hidden">
@@ -140,18 +143,18 @@ defineOptions({
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-sidebar-border/70 bg-muted/50 transition-colors dark:border-sidebar-border">
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Date</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">User</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">OLT</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Action</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Target SN</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Status</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('history.col.date') }}</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('history.col.user') }}</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('history.col.olt') }}</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('history.col.action') }}</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('history.col.targetSn') }}</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('history.col.status') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="history.data.length === 0" class="border-b border-sidebar-border/70 transition-colors last:border-0 dark:border-sidebar-border">
                             <td colspan="6" class="h-24 text-center align-middle">
-                                No history found.
+                                {{ t('history.empty') }}
                             </td>
                         </tr>
                         <tr v-for="item in history.data" :key="item.id" class="border-b border-sidebar-border/70 transition-colors hover:bg-muted/50 last:border-0 dark:border-sidebar-border">
@@ -224,20 +227,20 @@ defineOptions({
     <!-- Clear History Confirmation Dialog -->
     <div v-if="showClearConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="rounded-xl bg-background p-6 shadow-lg w-full max-w-md">
-            <h3 class="text-lg font-semibold">Clear History</h3>
+            <h3 class="text-lg font-semibold">{{ t('history.clearTitle') }}</h3>
             <p class="mt-2 text-sm text-muted-foreground">
-                Are you sure you want to clear
-                <template v-if="selectedFilter === 'all'">all history records</template>
-                <template v-else-if="selectedFilter === 'daily'">today's history records</template>
-                <template v-else>this month's history records</template>?
-                This action cannot be undone.
+                {{ t('history.confirmText1') }}
+                <template v-if="selectedFilter === 'all'">{{ t('history.confirmAll') }}</template>
+                <template v-else-if="selectedFilter === 'daily'">{{ t('history.confirmToday') }}</template>
+                <template v-else>{{ t('history.confirmMonth') }}</template>?
+                {{ t('history.confirmUndo') }}
             </p>
             <div class="mt-4 flex justify-end gap-2">
                 <Button variant="outline" size="sm" @click="showClearConfirm = false" :disabled="isClearing">
-                    Cancel
+                    {{ t('common.cancel') }}
                 </Button>
                 <Button variant="destructive" size="sm" @click="clearHistory" :disabled="isClearing">
-                    {{ isClearing ? 'Clearing...' : 'Clear' }}
+                    {{ isClearing ? t('history.clearing') : t('history.clear') }}
                 </Button>
             </div>
         </div>

@@ -4,6 +4,7 @@ import { MonitorPlay, X, Zap, Clock } from '@lucide/vue';
 import { useSessionStorage, useLocalStorage } from '@vueuse/core';
 import axios from 'axios';
 import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
 import BannerModal from '@/components/olt/BannerModal.vue';
@@ -13,6 +14,8 @@ import OnuTable from '@/components/olt/OnuTable.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import AppLayout from '@/layouts/AppLayout.vue';
+
+const { t } = useI18n();
 
 interface OltOption { id: number; name: string; host: string; }
 interface Template { id: number; name: string; host: string; port: number; username: string; is_default: boolean; }
@@ -51,6 +54,7 @@ onMounted(async () => {
         scanForm.value.port = connectionState.value.port;
         scanForm.value.username = connectionState.value.username;
         scanForm.value.password = connectionState.value.password;
+
         if (autoReconnect.value) {
             await doLogin();
         }
@@ -59,13 +63,13 @@ onMounted(async () => {
 
 const scanForm = ref({
     id: null as number | null,
-    name: 'Quick Scan OLT',
+    name: t('olt.scan.defaultName'),
     host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE',
 });
 
 const fetchBanner = async (data: { host: string; port: number; username: string; password: string }) => {
     if (!data.host || !data.username || !data.password) {
-        toast.error('Please fill in all connection details');
+        toast.error(t('olt.scan.toast.fillAllDetails'));
 
         return;
     }
@@ -81,10 +85,10 @@ const fetchBanner = async (data: { host: string; port: number; username: string;
             isModalOpen.value = false;
             isBannerModalOpen.value = true;
         } else {
-            toast.error(response.data.message || 'Failed to reach OLT');
+            toast.error(response.data.message || t('olt.scan.toast.reachFailed'));
         }
     } catch (error: any) {
-        toast.error(error.response?.data?.message || 'OLT is unreachable');
+        toast.error(error.response?.data?.message || t('olt.scan.toast.unreachable'));
     } finally {
         isFetchingBanner.value = false;
     }
@@ -110,12 +114,12 @@ const doLogin = async () => {
 
             lastCheckedAt.value = new Date();
             hasConnectedOnce.value = true;
-            toast.success('Login successful and ONU list updated');
+            toast.success(t('olt.scan.toast.loginSuccess'));
         } else {
-            toast.error(scanResponse.data.message || 'Login failed');
+            toast.error(scanResponse.data.message || t('olt.scan.toast.loginFailed'));
         }
     } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Handshake failed');
+        toast.error(error.response?.data?.message || t('olt.scan.toast.handshakeFailed'));
     } finally {
         isScanning.value = false;
     }
@@ -123,7 +127,7 @@ const doLogin = async () => {
 
 const disconnect = () => {
     activeOltId.value = null; onus.value = []; consoleOutput.value = '';
-    scanForm.value = { id: null, name: 'Quick Scan OLT', host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE' };
+    scanForm.value = { id: null, name: t('olt.scan.defaultName'), host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE' };
     connectionState.value = { activeOltId: null, host: '', port: 23, username: '', password: '', isConnected: false };
 };
 
@@ -131,20 +135,20 @@ const quickConnect = async () => {
     const template = props.templates.find(t => t.is_default);
 
     if (!template) {
-        toast.error('No default template set. Go to Settings to set one.');
+        toast.error(t('olt.scan.toast.noDefaultTemplate'));
 
         return;
     }
 
-    const t = template;
-    scanForm.value.host = t.host; scanForm.value.port = t.port;
-    scanForm.value.username = t.username; scanForm.value.password = '';
+    const tmpl = template;
+    scanForm.value.host = tmpl.host; scanForm.value.port = tmpl.port;
+    scanForm.value.username = tmpl.username; scanForm.value.password = '';
 
     isQuickConnecting.value = true;
     isScanning.value = true;
 
     try {
-        const scanResponse = await axios.post('/olt/scan', { template_id: t.id });
+        const scanResponse = await axios.post('/olt/scan', { template_id: tmpl.id });
 
         if (scanResponse.data.status === 'success') {
             onus.value = scanResponse.data.data;
@@ -152,19 +156,19 @@ const quickConnect = async () => {
 
             connectionState.value = {
                 activeOltId: scanResponse.data.olt_id,
-                host: t.host, port: t.port,
-                username: t.username, password: t.password,
+                host: tmpl.host, port: tmpl.port,
+                username: tmpl.username, password: tmpl.password,
                 isConnected: true,
             };
 
             lastCheckedAt.value = new Date();
             hasConnectedOnce.value = true;
-            toast.success(`Quick connected via "${t.name}"`);
+            toast.success(`${t('olt.scan.toast.quickConnected')} "${tmpl.name}"`);
         } else {
-            toast.error(scanResponse.data.message || 'Quick connect failed');
+            toast.error(scanResponse.data.message || t('olt.scan.toast.quickConnectFailed'));
         }
     } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Quick connect failed');
+        toast.error(error.response?.data?.message || t('olt.scan.toast.quickConnectFailed'));
     } finally {
         isScanning.value = false;
         isQuickConnecting.value = false;
@@ -173,7 +177,7 @@ const quickConnect = async () => {
 
 const runDiagnostic = async (diag: { label: string; command: string; action: string }) => {
     if (!scanForm.value.host) {
-        toast.error('Please connect to a device first');
+        toast.error(t('olt.scan.toast.connectFirst'));
         isModalOpen.value = true;
 
         return;
@@ -187,13 +191,13 @@ const runDiagnostic = async (diag: { label: string; command: string; action: str
 
         if (response.data.status === 'success') {
             consoleOutput.value = response.data.output;
-            toast.success(`${diag.label} command executed`);
+            toast.success(`${diag.label} ${t('olt.scan.toast.commandExecuted')}`);
         } else {
             consoleOutput.value += `Error: ${response.data.message}`;
-            toast.error(response.data.message || 'Failed');
+            toast.error(response.data.message || t('common.failed'));
         }
     } catch (error: any) {
-        const msg = error.response?.data?.message || 'Failed to connect to OLT';
+        const msg = error.response?.data?.message || t('olt.scan.toast.connectOltFailed');
         consoleOutput.value += `Error: ${msg}`;
         toast.error(msg);
     } finally {
@@ -238,10 +242,10 @@ const toggleAutoScan = () => {
 
     if (autoScanEnabled.value) {
         startAutoScan();
-        toast.success('Auto-scan enabled (every 5s)');
+        toast.success(t('olt.scan.toast.autoScanEnabled'));
     } else {
         stopAutoScan();
-        toast.info('Auto-scan disabled');
+        toast.info(t('olt.scan.toast.autoScanDisabled'));
     }
 };
 
@@ -261,33 +265,33 @@ defineOptions({ layout: AppLayout });
 </script>
 
 <template>
-    <Head title="ONU Scan" />
+    <Head :title="t('olt.scan.headTitle')" />
 
     <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div class="space-y-4 flex-1">
-                <Heading title="Quick Scan" description="Scan for unconfigured ONUs and run diagnostic commands" />
+                <Heading :title="t('olt.scan.heading')" :description="t('olt.scan.description')" />
 
                 <div v-if="activeOltId" class="flex items-center gap-3 text-sm text-emerald-600 font-medium">
                     <MonitorPlay class="h-4 w-4" />
-                    Connected to: {{ scanForm.host }}
+                    {{ t('olt.scan.connectedTo') }} {{ scanForm.host }}
                     <span v-if="lastCheckedAt" class="text-muted-foreground font-normal flex items-center gap-1">
                         <Clock class="h-3 w-3" />
-                        Last scan: {{ lastCheckedAt.toLocaleTimeString() }}
+                        {{ t('olt.scan.lastScan') }} {{ lastCheckedAt.toLocaleTimeString() }}
                     </span>
                     <Button variant="ghost" size="sm" class="text-red-500 hover:text-red-600 h-7 px-2" @click="disconnect">
-                        <X class="h-3 w-3 mr-1" /> Disconnect
+                        <X class="h-3 w-3 mr-1" /> {{ t('olt.scan.disconnect') }}
                     </Button>
                 </div>
                 <label v-if="hasConnectedOnce && connectionState.isConnected" class="flex items-center gap-2 text-sm cursor-pointer select-none">
                     <input type="checkbox" :checked="autoScanEnabled" @change="toggleAutoScan" class="h-4 w-4 rounded border-muted-foreground accent-primary" />
-                    Auto-scan (5s)
+                    {{ t('olt.scan.autoScan') }}
                 </label>
             </div>
 
             <div class="flex gap-2">
                 <Button
-                    v-if="props.templates.find(t => t.is_default)"
+                    v-if="props.templates.find(tmpl => tmpl.is_default)"
                     variant="outline"
                     size="lg"
                     class="h-12 px-6"
@@ -296,7 +300,7 @@ defineOptions({ layout: AppLayout });
                 >
                     <Spinner v-if="isQuickConnecting" class="mr-2" />
                     <Zap v-else class="mr-2 h-5 w-5 text-yellow-500" />
-                    Quick Connect
+                    {{ t('olt.scan.quickConnect') }}
                 </Button>
 
                 <div :class="{ 'opacity-50 pointer-events-none': !!activeOltId }">

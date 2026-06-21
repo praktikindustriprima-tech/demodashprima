@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ClipboardCheck, Printer, FileDown, Square } from '@lucide/vue';
 import axios from 'axios';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -38,6 +39,8 @@ const emit = defineEmits<{
     'stopped': [];
 }>();
 
+const { t } = useI18n();
+
 const session = ref<Session | null>(null);
 const isLoading = ref(false);
 const isStopping = ref(false);
@@ -48,11 +51,12 @@ const fetchSession = async (id: number) => {
 
     try {
         const response = await axios.get(`/audit/sessions/${id}`);
+
         if (response.data.status === 'success') {
             session.value = response.data.data;
         }
     } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Gagal memuat detail sesi');
+        toast.error(error.response?.data?.message || t('audit.modal.failedToLoadSession'));
         emit('update:open', false);
     } finally {
         isLoading.value = false;
@@ -65,39 +69,49 @@ watch(() => props.open, (isOpen) => {
     }
 });
 
-const onuColumns = [
-    { key: 'olt_index' as const, label: 'OLT Index' },
-    { key: 'model' as const, label: 'Model' },
-    { key: 'sn' as const, label: 'Serial Number' },
-    { key: 'pw' as const, label: 'Password' },
-    { key: 'scanned_at' as const, label: 'Scanned At' },
-];
+const onuColumns = computed(() => [
+    { key: 'olt_index' as const, label: t('audit.modal.oltIndex') },
+    { key: 'model' as const, label: t('audit.modal.model') },
+    { key: 'sn' as const, label: t('audit.modal.serialNumber') },
+    { key: 'pw' as const, label: t('audit.modal.password') },
+    { key: 'scanned_at' as const, label: t('audit.modal.scannedAt') },
+]);
 
 const exportCsv = async () => {
-    if (!session.value) return;
-    await exportToExcel(session.value.onus, onuColumns, {
+    if (!session.value) {
+return;
+}
+
+    await exportToExcel(session.value.onus, onuColumns.value, {
         filename: `audit_session_${session.value.id}_${new Date().toISOString().slice(0, 10)}.xlsx`,
     });
 };
 
 const printTable = () => {
-    if (!session.value) return;
-    printToPdf(session.value.onus, onuColumns, {
-        title: `Audit Session: ${session.value.name}`,
+    if (!session.value) {
+return;
+}
+
+    printToPdf(session.value.onus, onuColumns.value, {
+        title: t('audit.modal.printTitle', { name: session.value.name }),
     });
 };
 
 const stopSession = async () => {
-    if (!session.value) return;
+    if (!session.value) {
+return;
+}
+
     isStopping.value = true;
+
     try {
         await axios.post(`/audit/sessions/${session.value.id}/complete`);
         session.value.status = 'completed';
-        toast.success('Sesi berhasil diakhiri');
+        toast.success(t('audit.modal.sessionStopped'));
         emit('update:open', false);
         emit('stopped');
     } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Gagal mengakhiri sesi');
+        toast.error(error.response?.data?.message || t('audit.modal.failedToStopSession'));
     } finally {
         isStopping.value = false;
     }
@@ -108,24 +122,24 @@ const stopSession = async () => {
     <Dialog :open="open" @update:open="emit('update:open', $event)">
         <DialogContent class="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-                <DialogTitle>{{ session?.name || 'Detail Sesi' }}</DialogTitle>
+                <DialogTitle>{{ session?.name || t('audit.modal.sessionDetail') }}</DialogTitle>
             </DialogHeader>
 
             <!-- Loading -->
             <div v-if="isLoading" class="flex items-center justify-center py-12 text-muted-foreground">
                 <Spinner class="mr-2 h-4 w-4" />
-                Memuat data...
+                {{ t('audit.modal.loading') }}
             </div>
 
             <template v-else-if="session">
                 <!-- Session Info -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div class="rounded-lg border border-sidebar-border/70 dark:border-sidebar-border p-3">
-                        <p class="text-xs text-muted-foreground">OLT</p>
+                        <p class="text-xs text-muted-foreground">{{ t('audit.modal.olt') }}</p>
                         <p class="font-medium text-sm">{{ session.olt?.name || 'N/A' }}</p>
                     </div>
                     <div class="rounded-lg border border-sidebar-border/70 dark:border-sidebar-border p-3">
-                        <p class="text-xs text-muted-foreground">Status</p>
+                        <p class="text-xs text-muted-foreground">{{ t('audit.modal.status') }}</p>
                         <span
                             class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
                             :class="session.status === 'completed'
@@ -136,11 +150,11 @@ const stopSession = async () => {
                         </span>
                     </div>
                     <div class="rounded-lg border border-sidebar-border/70 dark:border-sidebar-border p-3">
-                        <p class="text-xs text-muted-foreground">Jumlah ONU</p>
+                        <p class="text-xs text-muted-foreground">{{ t('audit.modal.onuCount') }}</p>
                         <p class="font-medium text-sm">{{ session.onu_count }}</p>
                     </div>
                     <div class="rounded-lg border border-sidebar-border/70 dark:border-sidebar-border p-3">
-                        <p class="text-xs text-muted-foreground">Tanggal Mulai</p>
+                        <p class="text-xs text-muted-foreground">{{ t('audit.modal.startDate') }}</p>
                         <p class="font-medium text-sm">{{ new Date(session.started_at).toLocaleString() }}</p>
                     </div>
                 </div>
@@ -156,22 +170,22 @@ const stopSession = async () => {
                     >
                         <Spinner v-if="isStopping" class="mr-2 h-4 w-4" />
                         <Square v-else class="mr-2 h-4 w-4" />
-                        {{ isStopping ? 'Mengakhiri...' : 'Akhiri Sesi' }}
+                        {{ isStopping ? t('audit.modal.stopping') : t('audit.modal.stopSession') }}
                     </Button>
                     <Button variant="outline" size="sm" @click="exportCsv" :disabled="session.onus.length === 0">
                         <FileDown class="mr-2 h-4 w-4" />
-                        Export Excel
+                        {{ t('audit.modal.exportExcel') }}
                     </Button>
                     <Button variant="outline" size="sm" @click="printTable" :disabled="session.onus.length === 0">
                         <Printer class="mr-2 h-4 w-4" />
-                        Print
+                        {{ t('audit.modal.print') }}
                     </Button>
                 </div>
 
                 <!-- ONU Table -->
                 <div v-if="session.onus.length === 0" class="rounded-xl border border-dashed border-sidebar-border/70 dark:border-sidebar-border py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
                     <ClipboardCheck class="h-8 w-8" />
-                    <p class="text-sm">Tidak ada ONU dalam sesi ini.</p>
+                    <p class="text-sm">{{ t('audit.modal.noOnuInSession') }}</p>
                 </div>
 
                 <div v-else class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border overflow-hidden">
@@ -180,11 +194,11 @@ const stopSession = async () => {
                             <thead>
                                 <tr class="border-b border-sidebar-border/70 bg-muted/50 transition-colors dark:border-sidebar-border">
                                     <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">#</th>
-                                    <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">OLT Index</th>
-                                    <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">Model</th>
-                                    <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">Serial Number</th>
-                                    <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">Password</th>
-                                    <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">Scanned At</th>
+                                    <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.modal.oltIndex') }}</th>
+                                    <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.modal.model') }}</th>
+                                    <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.modal.serialNumber') }}</th>
+                                    <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.modal.password') }}</th>
+                                    <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.modal.scannedAt') }}</th>
                                 </tr>
                             </thead>
                             <tbody>

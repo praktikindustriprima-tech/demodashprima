@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Square, Eye, ChevronLeft, ChevronRight, History } from '@lucide/vue';
-import { computed, ref } from 'vue';
 import axios from 'axios';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
+import SessionDetailModal from '@/components/olt/SessionDetailModal.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import SessionDetailModal from '@/components/olt/SessionDetailModal.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+
+const { t } = useI18n();
 
 interface Session {
     id: number;
@@ -45,12 +48,13 @@ const openDetail = (id: number) => {
 
 const endSession = async (id: number) => {
     endingSessionId.value = id;
+
     try {
         await axios.post(`/audit/sessions/${id}/complete`);
-        toast.success('Sesi berhasil diakhiri');
+        toast.success(t('audit.history.toast.ended'));
         router.reload({ only: ['sessions'] });
     } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Gagal mengakhiri sesi');
+        toast.error(error.response?.data?.message || t('audit.history.toast.endFailed'));
     } finally {
         endingSessionId.value = null;
     }
@@ -60,10 +64,10 @@ defineOptions({ layout: AppLayout });
 </script>
 
 <template>
-    <Head title="Scan Session" />
+    <Head :title="t('audit.history.title')" />
 
     <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-        <Heading title="Scan Session" description="View OLT audit sessions" />
+        <Heading :title="t('audit.history.heading')" :description="t('audit.history.description')" />
 
         <SessionDetailModal
             v-model:open="isDetailModalOpen"
@@ -73,7 +77,7 @@ defineOptions({ layout: AppLayout });
 
         <div v-if="!sessions?.data?.length" class="rounded-xl border border-dashed border-sidebar-border/70 dark:border-sidebar-border py-16 flex flex-col items-center justify-center gap-3 text-muted-foreground">
             <History class="h-10 w-10" />
-            <p class="text-sm">No session history available yet.</p>
+            <p class="text-sm">{{ t('audit.history.empty') }}</p>
         </div>
 
         <template v-else>
@@ -82,12 +86,12 @@ defineOptions({ layout: AppLayout });
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="border-b border-sidebar-border/70 bg-muted/50 transition-colors dark:border-sidebar-border">
-                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">ID</th>
-                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Nama Sesi</th>
-                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">OLT</th>
-                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Jumlah ONU</th>
-                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Status</th>
-                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Tanggal</th>
+                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.history.col.id') }}</th>
+                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.history.col.sessionName') }}</th>
+                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.history.col.olt') }}</th>
+                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.history.col.onuCount') }}</th>
+                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.history.col.status') }}</th>
+                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.history.col.date') }}</th>
                                 <th class="h-12 w-12"></th>
                             </tr>
                         </thead>
@@ -131,7 +135,7 @@ defineOptions({ layout: AppLayout });
                                                         <Square v-else class="h-4 w-4 text-destructive" />
                                                     </Button>
                                                 </TooltipTrigger>
-                                                <TooltipContent>Akhiri Sesi</TooltipContent>
+                                                <TooltipContent>{{ t('audit.history.endSession') }}</TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
                                     </div>

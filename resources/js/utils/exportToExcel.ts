@@ -66,17 +66,23 @@ export async function exportToExcel<T extends Record<string, any>>(
         const row = sheet.addRow(
             columns.map(c => {
                 const val = item[c.key];
+
                 if (val == null) {
                     return '';
                 }
+
                 if (c.type === 'number') {
                     const num = Number(val);
+
                     return isNaN(num) ? val : num;
                 }
+
                 if (c.type === 'date') {
                     const d = new Date(val);
+
                     return isNaN(d.getTime()) ? val : d;
                 }
+
                 return String(val);
             }),
         );

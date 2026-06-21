@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { X, HardDrive, Info, Cpu, Terminal, Wind, Zap } from '@lucide/vue';
+import { useI18n } from 'vue-i18n';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+
+const { t } = useI18n();
 
 defineProps<{
     consoleOutput: string;
@@ -15,16 +18,16 @@ const emit = defineEmits<{
 }>();
 
 const diagnostics = [
-    { label: 'Show Card', command: 'show card', action: 'Check Card Status', icon: HardDrive },
-    { label: 'Show Processor', command: 'show processor', action: 'Check CPU', icon: Cpu },
-    { label: 'Show Fan', command: 'show fan', action: 'Check Fan', icon: Wind },
-    { label: 'Show Power', command: 'show power', action: 'Check Power', icon: Zap },
+    { label: t('diag.showCard'), command: 'show card', action: t('diag.checkCardStatus'), icon: HardDrive },
+    { label: t('diag.showProcessor'), command: 'show processor', action: t('diag.checkCpu'), icon: Cpu },
+    { label: t('diag.showFan'), command: 'show fan', action: t('diag.checkFan'), icon: Wind },
+    { label: t('diag.showPower'), command: 'show power', action: t('diag.checkPower'), icon: Zap },
 ];
 </script>
 
 <template>
     <div class="flex flex-col gap-2">
-        <h3 class="text-sm font-medium text-muted-foreground">Quick Diagnostics</h3>
+        <h3 class="text-sm font-medium text-muted-foreground">{{ t('diag.heading') }}</h3>
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
             <Button
                 v-for="diag in diagnostics"
@@ -47,12 +50,12 @@ const diagnostics = [
             </Button>
         </div>
         <div class="mb-2 border-b border-emerald-900/50 pb-1 text-[10px] uppercase tracking-wider text-emerald-600">
-            OLT Console Output
+            {{ t('diag.consoleOutput') }}
         </div>
         <pre class="overflow-auto max-h-[300px] whitespace-pre-wrap">{{ consoleOutput }}</pre>
         <div v-if="isRunningCommand" class="mt-2 flex items-center gap-2 text-emerald-600">
             <Spinner class="h-3 w-3" />
-            <span>Processing...</span>
+            <span>{{ t('diag.processing') }}</span>
         </div>
     </div>
 </template>
