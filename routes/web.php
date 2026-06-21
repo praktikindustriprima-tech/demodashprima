@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuditSessionController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OltController;
 use App\Http\Controllers\OltTemplateController;
 use Illuminate\Support\Facades\Route;
@@ -39,7 +40,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('audit/sessions/{session}/complete', [AuditSessionController::class, 'complete'])->name('audit.sessions.complete');
     Route::delete('audit/sessions/{session}', [AuditSessionController::class, 'destroy'])->name('audit.sessions.destroy');
 
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });
 
 require __DIR__.'/settings.php';
