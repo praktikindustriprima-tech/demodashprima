@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Cpu, FolderGit2, LayoutGrid, History, Settings, ListChecks, MonitorPlay, Scan, ClipboardCheck } from '@lucide/vue';
+import { Cpu, History, Settings, ListChecks, MonitorPlay, Scan, ClipboardCheck } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import AppLogo from '@/components/AppLogo.vue';
-import NavFooter from '@/components/NavFooter.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
     Collapsible,
@@ -28,18 +27,7 @@ import { dashboard } from '@/routes';
 const { t } = useI18n();
 const { isCurrentUrl } = useCurrentUrl();
 
-const footerNavItems = [
-    {
-        title: 'sidebar.nav.repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'sidebar.nav.documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
-];
+
 </script>
 
 <template>
@@ -143,7 +131,6 @@ const footerNavItems = [
         </SidebarContent>
 
         <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
             <NavUser />
         </SidebarFooter>
     </Sidebar>
