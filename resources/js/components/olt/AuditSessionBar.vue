@@ -33,10 +33,10 @@ const emit = defineEmits<{
     <!-- No active session -->
     <div v-if="!session" class="flex items-center gap-3 rounded-xl border border-dashed border-sidebar-border/70 dark:border-sidebar-border bg-muted/30 px-4 py-3">
         <ClipboardCheck class="h-5 w-5 text-muted-foreground" />
-        <span class="text-sm text-muted-foreground flex-1">{{ t('audit.bar.hint') }}</span>
+        <span class="text-sm text-muted-foreground flex-1">{{ t('audit.bar.noSessionHint') }}</span>
         <Button variant="outline" size="sm" @click="emit('start')">
             <Play class="mr-2 h-4 w-4" />
-            {{ t('audit.bar.startAuditSession') }}
+            {{ t('audit.bar.startSession') }}
         </Button>
     </div>
 
@@ -60,7 +60,7 @@ const emit = defineEmits<{
         >
             <Spinner v-if="isSaving" class="mr-2" />
             <Save v-else class="mr-2 h-4 w-4" />
-            {{ isSaving ? t('audit.bar.saving') : t('audit.bar.savePermanent') }}
+            {{ isSaving ? t('audit.bar.saving') : t('audit.bar.savePermanently') }}
         </Button>
         <Button variant="ghost" size="sm" class="text-red-500 hover:text-red-600" @click="emit('close')">
             <X class="h-4 w-4" />

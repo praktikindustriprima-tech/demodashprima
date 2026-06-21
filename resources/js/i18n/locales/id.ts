@@ -54,6 +54,7 @@ export default {
     },
     security: {
         title: 'Pengaturan keamanan',
+        settings: 'Pengaturan keamanan',
         heading: 'Perbarui kata sandi',
         description: 'Pastikan akun Anda menggunakan kata sandi yang panjang dan acak untuk tetap aman',
         currentPassword: 'Kata sandi saat ini',
@@ -62,6 +63,7 @@ export default {
         newPasswordPlaceholder: 'Kata sandi baru',
         confirmPassword: 'Konfirmasi kata sandi',
         confirmPasswordPlaceholder: 'Konfirmasi kata sandi',
+        save: 'Simpan',
     },
     appearance: {
         title: 'Pengaturan Antarmuka',
@@ -300,9 +302,10 @@ export default {
         start: {
             title: 'Mulai Sesi Audit',
             description: 'Beri nama sesi untuk memulai audit.',
-            nameLabel: 'Nama',
-            namePlaceholder: 'Auto-generated jika kosong',
-            submit: 'Mulai',
+            name: 'Nama',
+            placeholder: 'Auto-generated jika kosong',
+            cancel: 'Batal',
+            start: 'Mulai',
         },
         bar: {
             noSessionHint: 'Mulai sesi audit untuk mengumpulkan data ONU secara bertahap.',
@@ -472,6 +475,7 @@ export default {
     diag: {
         heading: 'Diagnostik Cepat',
         consoleOutput: 'Output Konsol OLT',
+        processing: 'Memproses...',
         showCard: 'Tampilkan Kartu',
         checkCardStatus: 'Periksa Status Kartu',
         showProcessor: 'Tampilkan Prosesor',
@@ -483,6 +487,7 @@ export default {
     },
     banner: {
         title: 'Banner Sistem',
+        cancel: 'Batal',
         loggingIn: 'Masuk...',
         login: 'Masuk',
     },

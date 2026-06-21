@@ -54,6 +54,7 @@ export default {
     },
     security: {
         title: 'Security settings',
+        settings: 'Security settings',
         heading: 'Update password',
         description: 'Ensure your account is using a long, random password to stay secure',
         currentPassword: 'Current password',
@@ -62,6 +63,7 @@ export default {
         newPasswordPlaceholder: 'New password',
         confirmPassword: 'Confirm password',
         confirmPasswordPlaceholder: 'Confirm password',
+        save: 'Save',
     },
     appearance: {
         title: 'Interface Settings',
@@ -300,9 +302,10 @@ export default {
         start: {
             title: 'Start Audit Session',
             description: 'Name the session to start the audit.',
-            nameLabel: 'Name',
-            namePlaceholder: 'Auto-generated if empty',
-            submit: 'Start',
+            name: 'Name',
+            placeholder: 'Auto-generated if empty',
+            cancel: 'Cancel',
+            start: 'Start',
         },
         bar: {
             noSessionHint: 'Start an audit session to collect ONU data gradually.',
@@ -472,6 +475,7 @@ export default {
     diag: {
         heading: 'Quick Diagnostics',
         consoleOutput: 'OLT Console Output',
+        processing: 'Processing...',
         showCard: 'Show Card',
         checkCardStatus: 'Check Card Status',
         showProcessor: 'Show Processor',
@@ -483,6 +487,7 @@ export default {
     },
     banner: {
         title: 'System Banner',
+        cancel: 'Cancel',
         loggingIn: 'Logging in...',
         login: 'Login',
     },
