@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AuditSessionDeleteRequest;
 use App\Models\AuditSession;
 use App\Models\AuditSessionOnu;
 use Illuminate\Http\Request;
@@ -127,8 +128,12 @@ class AuditSessionController extends Controller
     /**
      * Delete/close a session.
      */
-    public function destroy(AuditSession $session)
+    public function destroy(AuditSessionDeleteRequest $request, AuditSession $session)
     {
+        if ($session->user_id !== Auth::id()) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+
         $session->delete();
 
         return response()->json([

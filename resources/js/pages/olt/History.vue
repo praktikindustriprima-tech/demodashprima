@@ -97,11 +97,11 @@ defineOptions({
         <div class="flex items-start justify-between print:hidden">
             <Heading :title="t('history.heading')" :description="t('history.description')" />
             <div class="flex items-center gap-2">
-                <Button variant="outline" @click="printHistory">
+                <Button variant="outline" :disabled="history.total === 0" @click="printHistory">
                     <Printer class="mr-2 h-4 w-4" />
                     {{ t('common.print') }}
                 </Button>
-                <Button variant="outline" @click="exportExcel">
+                <Button variant="outline" :disabled="history.total === 0" @click="exportExcel">
                     <FileSpreadsheet class="mr-2 h-4 w-4" />
                     {{ t('history.exportExcel') }}
                 </Button>

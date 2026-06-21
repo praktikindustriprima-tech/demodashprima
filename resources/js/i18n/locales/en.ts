@@ -246,6 +246,7 @@ export default {
             description: 'View OLT audit sessions',
             empty: 'No session history available yet.',
             endSession: 'End Session',
+            deleteSession: 'Delete Session',
             col: {
                 id: 'ID',
                 sessionName: 'Session Name',
@@ -254,9 +255,19 @@ export default {
                 status: 'Status',
                 date: 'Date',
             },
+            deleteModal: {
+                title: 'Delete Scan Session',
+                description: 'Enter your password to confirm deletion. This action cannot be undone.',
+                passwordLabel: 'Password',
+                passwordPlaceholder: 'Enter your password',
+                cancel: 'Cancel',
+                confirm: 'Delete',
+            },
             toast: {
                 ended: 'Session ended successfully',
                 endFailed: 'Failed to end session',
+                deleted: 'Session deleted successfully',
+                deleteFailed: 'Failed to delete session',
             },
         },
         modal: {

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Square, Eye, ChevronLeft, ChevronRight, History } from '@lucide/vue';
+import { Square, Eye, ChevronLeft, ChevronRight, History, Trash2 } from '@lucide/vue';
 import axios from 'axios';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
+import DeleteSessionModal from '@/components/olt/DeleteSessionModal.vue';
 import SessionDetailModal from '@/components/olt/SessionDetailModal.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -41,6 +42,11 @@ const isDetailModalOpen = ref(false);
 const selectedSessionId = ref<number | null>(null);
 const endingSessionId = ref<number | null>(null);
 
+const isDeleteModalOpen = ref(false);
+const deletingSessionId = ref<number | null>(null);
+const deleteProcessing = ref(false);
+const deleteErrors = ref<Record<string, string>>({});
+
 const openDetail = (id: number) => {
     selectedSessionId.value = id;
     isDetailModalOpen.value = true;
@@ -60,19 +66,71 @@ const endSession = async (id: number) => {
     }
 };
 
+const openDeleteModal = (id: number) => {
+    deletingSessionId.value = id;
+    deleteErrors.value = {};
+    isDeleteModalOpen.value = true;
+};
+
+const handleDelete = async (password: string) => {
+    if (!deletingSessionId.value) {
+        return;
+    }
+
+    deleteProcessing.value = true;
+    deleteErrors.value = {};
+
+    try {
+        await axios.delete(`/audit/sessions/${deletingSessionId.value}`, {
+            data: { password },
+        });
+        toast.success(t('audit.history.toast.deleted'));
+        isDeleteModalOpen.value = false;
+
+        const isLastItemOnPage = props.sessions.data.length === 1 && props.sessions.current_page > 1;
+
+        if (isLastItemOnPage) {
+            const prevPageUrl = props.sessions.links[0]?.url;
+
+            if (prevPageUrl) {
+                router.visit(prevPageUrl, { only: ['sessions'] });
+
+                return;
+            }
+        }
+
+        router.reload({ only: ['sessions'] });
+    } catch (error: any) {
+        if (error.response?.status === 422) {
+            deleteErrors.value = error.response.data.errors || {};
+        } else {
+            toast.error(error.response?.data?.message || t('audit.history.toast.deleteFailed'));
+        }
+    } finally {
+        deleteProcessing.value = false;
+    }
+};
+
 defineOptions({ layout: AppLayout });
 </script>
 
 <template>
     <Head :title="t('audit.history.title')" />
 
-    <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
+    <div class="flex h-full flex-1 flex-col gap-4 p-4">
         <Heading :title="t('audit.history.heading')" :description="t('audit.history.description')" />
 
         <SessionDetailModal
             v-model:open="isDetailModalOpen"
             :session-id="selectedSessionId"
             @stopped="router.reload({ only: ['sessions'] })"
+        />
+
+        <DeleteSessionModal
+            v-model:open="isDeleteModalOpen"
+            :processing="deleteProcessing"
+            :errors="deleteErrors"
+            @submit="handleDelete"
         />
 
         <div v-if="!sessions?.data?.length" class="rounded-xl border border-dashed border-sidebar-border/70 dark:border-sidebar-border py-16 flex flex-col items-center justify-center gap-3 text-muted-foreground">
@@ -136,6 +194,20 @@ defineOptions({ layout: AppLayout });
                                                     </Button>
                                                 </TooltipTrigger>
                                                 <TooltipContent>{{ t('audit.history.endSession') }}</TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                        <TooltipProvider :delay-duration="0">
+                                            <Tooltip>
+                                                <TooltipTrigger as-child>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        @click="openDeleteModal(session.id)"
+                                                    >
+                                                        <Trash2 class="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>{{ t('audit.history.deleteSession') }}</TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
                                     </div>

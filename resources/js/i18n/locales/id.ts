@@ -246,6 +246,7 @@ export default {
             description: 'Lihat sesi audit OLT',
             empty: 'Belum ada riwayat sesi.',
             endSession: 'Akhiri Sesi',
+            deleteSession: 'Hapus Sesi',
             col: {
                 id: 'ID',
                 sessionName: 'Nama Sesi',
@@ -254,9 +255,19 @@ export default {
                 status: 'Status',
                 date: 'Tanggal',
             },
+            deleteModal: {
+                title: 'Hapus Sesi Pindai',
+                description: 'Masukkan kata sandi untuk mengonfirmasi penghapusan. Tindakan ini tidak dapat dibatalkan.',
+                passwordLabel: 'Kata Sandi',
+                passwordPlaceholder: 'Masukkan kata sandi Anda',
+                cancel: 'Batal',
+                confirm: 'Hapus',
+            },
             toast: {
                 ended: 'Sesi berhasil diakhiri',
                 endFailed: 'Gagal mengakhiri sesi',
+                deleted: 'Sesi berhasil dihapus',
+                deleteFailed: 'Gagal menghapus sesi',
             },
         },
         modal: {
