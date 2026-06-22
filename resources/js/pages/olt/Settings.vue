@@ -74,6 +74,8 @@ const setDefault = (id: number) => {
 };
 
 const autoReconnect = useLocalStorage('olt-auto-reconnect', true);
+const autoScanInterval = useLocalStorage('olt-autoscan-interval', 5);
+const autoScanEnabledByDefault = useLocalStorage('olt-autoscan-default', true);
 
 defineOptions({ layout: AppLayout });
 </script>
@@ -205,7 +207,7 @@ defineOptions({ layout: AppLayout });
         <div class="flex flex-col gap-4">
             <h2 class="text-base font-semibold">{{ t('olt.settings.preferences') }}</h2>
             <Card>
-                <CardContent>
+                <CardContent class="space-y-4">
                     <label class="flex items-center justify-between cursor-pointer select-none">
                         <div>
                             <p class="font-medium text-sm">{{ t('olt.settings.autoReconnectTitle') }}</p>
@@ -225,6 +227,47 @@ defineOptions({ layout: AppLayout });
                             />
                         </button>
                     </label>
+
+                    <div class="border-t border-sidebar-border/70 dark:border-sidebar-border pt-4">
+                        <label class="flex items-center justify-between cursor-pointer select-none">
+                            <div>
+                                <p class="font-medium text-sm">{{ t('olt.settings.autoScanDefaultTitle') }}</p>
+                                <p class="text-xs text-muted-foreground mt-0.5">{{ t('olt.settings.autoScanDefaultDesc') }}</p>
+                            </div>
+                            <button
+                                type="button"
+                                role="switch"
+                                :aria-checked="autoScanEnabledByDefault"
+                                :class="autoScanEnabledByDefault ? 'bg-primary' : 'bg-input'"
+                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                @click="autoScanEnabledByDefault = !autoScanEnabledByDefault"
+                            >
+                                <span
+                                    :class="autoScanEnabledByDefault ? 'translate-x-5' : 'translate-x-0'"
+                                    class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform"
+                                />
+                            </button>
+                        </label>
+                    </div>
+
+                    <div class="border-t border-sidebar-border/70 dark:border-sidebar-border pt-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-medium text-sm">{{ t('olt.settings.autoScanIntervalTitle') }}</p>
+                                <p class="text-xs text-muted-foreground mt-0.5">{{ t('olt.settings.autoScanIntervalDesc') }}</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <Input
+                                    v-model.number="autoScanInterval"
+                                    type="number"
+                                    min="2"
+                                    max="60"
+                                    class="w-20 text-center"
+                                />
+                                <span class="text-sm text-muted-foreground">{{ t('olt.settings.seconds') }}</span>
+                            </div>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
         </div>

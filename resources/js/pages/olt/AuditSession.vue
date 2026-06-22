@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { MonitorPlay, X, Clock, ClipboardCheck } from '@lucide/vue';
-import { useSessionStorage } from '@vueuse/core';
+import { useLocalStorage, useSessionStorage } from '@vueuse/core';
 import axios from 'axios';
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -35,7 +35,9 @@ const autoScanEnabled = ref(false);
 const isAutoScanning = ref(false);
 const hasConnectedOnce = ref(false);
 const lastCheckedAt = ref<Date | null>(null);
-let autoScanInterval: ReturnType<typeof setInterval> | null = null;
+let autoScanTimer: ReturnType<typeof setInterval> | null = null;
+const autoScanDefaultEnabled = useLocalStorage('olt-autoscan-default', true);
+const autoScanSeconds = useLocalStorage('olt-autoscan-interval', 5);
 const knownSnSet = ref<Set<string>>(new Set());
 const isFirstAutoScan = ref(true);
 
@@ -104,7 +106,7 @@ onMounted(async () => {
         scanForm.value.password = connectionState.value.password;
         await doLogin(false);
 
-        if (hasActiveSession && auditSession.value) {
+        if (hasActiveSession && auditSession.value && autoScanDefaultEnabled.value) {
             autoScanEnabled.value = true;
             startAutoScan();
         }
@@ -212,7 +214,7 @@ const createAuditSession = async (oltId: number, oltName: string) => {
             };
             pendingSessionName.value = '';
 
-            if (!autoScanEnabled.value) {
+            if (autoScanDefaultEnabled.value && !autoScanEnabled.value) {
                 autoScanEnabled.value = true;
                 startAutoScan();
                 toast.success(t('audit.toast.autoScanEnabled'));
@@ -364,14 +366,14 @@ const runDiagnostic = async (diag: { label: string; command: string; action: str
 };
 
 const startAutoScan = () => {
-    if (autoScanInterval) {
+    if (autoScanTimer) {
         return;
     }
 
     isFirstAutoScan.value = true;
     knownSnSet.value = new Set(auditSession.value?.onus.map(o => o.sn) || []);
 
-    autoScanInterval = setInterval(async () => {
+    autoScanTimer = setInterval(async () => {
         if (!connectionState.value.isConnected || isScanning.value) {
             return;
         }
@@ -413,13 +415,13 @@ const startAutoScan = () => {
         } catch { /* silent */ } finally {
             isAutoScanning.value = false;
         }
-    }, 5000);
+    }, autoScanSeconds.value * 1000);
 };
 
 const stopAutoScan = () => {
-    if (autoScanInterval) {
-        clearInterval(autoScanInterval);
-        autoScanInterval = null;
+    if (autoScanTimer) {
+        clearInterval(autoScanTimer);
+        autoScanTimer = null;
     }
 
     isFirstAutoScan.value = true;
@@ -526,7 +528,7 @@ defineOptions({ layout: AppLayout });
             </div>
             <label v-if="hasConnectedOnce && connectionState.isConnected" class="flex items-center gap-2 text-sm cursor-pointer select-none">
                 <input type="checkbox" :checked="autoScanEnabled" @change="toggleAutoScan" class="h-4 w-4 rounded border-muted-foreground accent-primary" />
-                {{ t('audit.autoScan') }}
+                {{ t('audit.autoScan', { interval: autoScanSeconds }) }}
             </label>
 
             <DiagnosticsPanel

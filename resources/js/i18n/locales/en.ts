@@ -174,6 +174,11 @@ export default {
             quickScanDesc: 'Configure Quick Scan behavior.',
             autoReconnectTitle: 'Auto-reconnect on page load',
             autoReconnectDesc: 'Automatically reconnect to the last OLT when opening Quick Scan.',
+            autoScanDefaultTitle: 'Auto-scan enabled by default',
+            autoScanDefaultDesc: 'Enable auto-scan automatically when starting an Audit Session.',
+            autoScanIntervalTitle: 'Auto-scan interval',
+            autoScanIntervalDesc: 'How often to scan for ONUs during an Audit Session.',
+            seconds: 'sec',
             securityNote: 'Security Note',
             securityNoteDesc: 'Passwords are encrypted using AES-256 before being stored in the database.',
             toast: {
@@ -195,7 +200,7 @@ export default {
             connectedTo: 'Connected to:',
             lastScan: 'Last scan:',
             disconnect: 'Disconnect',
-            autoScan: 'Auto-scan (5s)',
+            autoScan: 'Auto-scan ({interval}s)',
             quickConnect: 'Quick Connect',
             toast: {
                 fillAllDetails: 'Please fill in all connection details',
@@ -224,7 +229,7 @@ export default {
         connectedTo: 'Connected to:',
         lastScan: 'Last scan:',
         disconnect: 'Disconnect',
-        autoScan: 'Auto-scan (5s)',
+        autoScan: 'Auto-scan ({interval}s)',
         detail: {
             back: 'Back',
             oltLabel: 'OLT',

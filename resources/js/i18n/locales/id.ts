@@ -174,6 +174,11 @@ export default {
             quickScanDesc: 'Konfigurasi perilaku Pindai Cepat.',
             autoReconnectTitle: 'Auto-reconnect saat halaman dimuat',
             autoReconnectDesc: 'Otomatis menyambung kembali ke OLT terakhir saat membuka Pindai Cepat.',
+            autoScanDefaultTitle: 'Pindai otomatis aktif secara default',
+            autoScanDefaultDesc: 'Aktifkan pindai otomatis saat memulai Sesi Audit.',
+            autoScanIntervalTitle: 'Interval pindai otomatis',
+            autoScanIntervalDesc: 'Seberapa sering memindai ONU selama Sesi Audit.',
+            seconds: 'det',
             securityNote: 'Catatan Keamanan',
             securityNoteDesc: 'Kata sandi dienkripsi menggunakan AES-256 sebelum disimpan di database.',
             toast: {
@@ -195,7 +200,7 @@ export default {
             connectedTo: 'Terhubung ke:',
             lastScan: 'Pindai terakhir:',
             disconnect: 'Putuskan',
-            autoScan: 'Pindai otomatis (5d)',
+            autoScan: 'Pindai otomatis ({interval}d)',
             quickConnect: 'Koneksi Cepat',
             toast: {
                 fillAllDetails: 'Harap isi semua detail koneksi',
