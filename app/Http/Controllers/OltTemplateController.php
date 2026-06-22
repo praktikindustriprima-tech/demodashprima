@@ -22,6 +22,25 @@ class OltTemplateController extends Controller
         return redirect()->back()->with('success', 'Template saved.');
     }
 
+    public function update(Request $request, OltTemplate $oltTemplate)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'host' => 'required|string|max:255',
+            'port' => 'required|integer',
+            'username' => 'required|string|max:255',
+            'password' => 'nullable|string',
+        ]);
+
+        if (!empty($data['password'])) {
+            $oltTemplate->update($data);
+        } else {
+            $oltTemplate->update(collect($data)->except('password')->toArray());
+        }
+
+        return redirect()->back()->with('success', 'Template updated.');
+    }
+
     public function destroy(OltTemplate $oltTemplate)
     {
         $oltTemplate->delete();

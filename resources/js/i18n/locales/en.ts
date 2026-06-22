@@ -154,6 +154,9 @@ export default {
             profileTemplates: 'OLT Profile Templates',
             addTemplate: 'Add Template',
             addTemplateDesc: 'Reusable connection profiles for quick connect.',
+            editTemplate: 'Edit Template',
+            editTemplateDesc: 'Update the template connection details.',
+            updateTemplate: 'Update Template',
             templateName: 'Template Name',
             host: 'Host',
             port: 'Port',
@@ -176,6 +179,7 @@ export default {
             toast: {
                 templateSaved: 'Template saved',
                 templateSaveFailed: 'Failed to save template',
+                templateUpdated: 'Template updated',
                 templateDeleted: 'Template deleted',
                 defaultUpdated: 'Default template updated',
             },

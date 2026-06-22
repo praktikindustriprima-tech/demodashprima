@@ -154,6 +154,9 @@ export default {
             profileTemplates: 'Templat Profil OLT',
             addTemplate: 'Tambah Templat',
             addTemplateDesc: 'Profil koneksi yang dapat digunakan untuk koneksi cepat.',
+            editTemplate: 'Edit Templat',
+            editTemplateDesc: 'Perbarui detail koneksi templat.',
+            updateTemplate: 'Perbarui Templat',
             templateName: 'Nama Templat',
             host: 'Host',
             port: 'Port',
@@ -176,6 +179,7 @@ export default {
             toast: {
                 templateSaved: 'Templat berhasil disimpan',
                 templateSaveFailed: 'Gagal menyimpan templat',
+                templateUpdated: 'Templat berhasil diperbarui',
                 templateDeleted: 'Templat berhasil dihapus',
                 defaultUpdated: 'Default templat berhasil diperbarui',
             },

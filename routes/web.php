@@ -21,6 +21,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('olt/history/session', [OltController::class, 'sessionHistory'])->name('olt.history.session');
 
     Route::post('olt/templates', [OltTemplateController::class, 'store'])->name('olt.templates.store');
+    Route::patch('olt/templates/{oltTemplate}', [OltTemplateController::class, 'update'])->name('olt.templates.update');
     Route::delete('olt/templates/{oltTemplate}', [OltTemplateController::class, 'destroy'])->name('olt.templates.destroy');
     Route::patch('olt/templates/{oltTemplate}/default', [OltTemplateController::class, 'setDefault'])->name('olt.templates.default');
 

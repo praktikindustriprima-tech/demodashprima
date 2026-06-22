@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { Settings, Plus, Save, Trash2, ShieldCheck, Globe, Hash, User, Lock, BookTemplate, MoreVertical, Check } from '@lucide/vue';
+import { Settings, Plus, Save, Trash2, ShieldCheck, Globe, Hash, User, Lock, BookTemplate, MoreVertical, Check, Pencil } from '@lucide/vue';
 import { useLocalStorage } from '@vueuse/core';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -23,17 +23,44 @@ interface OltTemplate {
 defineProps<{ templates: OltTemplate[] }>();
 
 // --- Template form ---
-const templateForm = useForm({ name: '', host: '', port: 23, username: '', password: '' });
+const templateForm = useForm({ id: null as number | null, name: '', host: '', port: 23, username: '', password: '' });
 const defaultForm = useForm({});
 const deleteForm = useForm({});
+const editingId = ref<number | null>(null);
 
 const submitTemplate = () => {
-    templateForm.post('/olt/templates', {
-        onSuccess: () => {
-            toast.success(t('olt.settings.toast.templateSaved')); templateForm.reset(); 
-        },
-        onError: () => toast.error(t('olt.settings.toast.templateSaveFailed')),
-    });
+    if (editingId.value) {
+        templateForm.patch(`/olt/templates/${editingId.value}`, {
+            onSuccess: () => {
+                toast.success(t('olt.settings.toast.templateUpdated'));
+                templateForm.reset();
+                editingId.value = null;
+            },
+            onError: () => toast.error(t('olt.settings.toast.templateSaveFailed')),
+        });
+    } else {
+        templateForm.post('/olt/templates', {
+            onSuccess: () => {
+                toast.success(t('olt.settings.toast.templateSaved'));
+                templateForm.reset();
+            },
+            onError: () => toast.error(t('olt.settings.toast.templateSaveFailed')),
+        });
+    }
+};
+
+const startEdit = (tmpl: OltTemplate) => {
+    editingId.value = tmpl.id;
+    templateForm.name = tmpl.name;
+    templateForm.host = tmpl.host;
+    templateForm.port = tmpl.port;
+    templateForm.username = tmpl.username;
+    templateForm.password = '';
+};
+
+const cancelEdit = () => {
+    editingId.value = null;
+    templateForm.reset();
 };
 const deleteTemplate = (id: number) => {
     if (confirm(t('olt.settings.confirm.deleteTemplate'))) {
@@ -66,9 +93,11 @@ defineOptions({ layout: AppLayout });
                 <Card>
                     <CardHeader>
                         <CardTitle class="flex items-center gap-2">
-                            <Plus class="h-5 w-5" /> {{ t('olt.settings.addTemplate') }}
+                            <Plus v-if="!editingId" class="h-5 w-5" />
+                            <Pencil v-else class="h-5 w-5" />
+                            {{ editingId ? t('olt.settings.editTemplate') : t('olt.settings.addTemplate') }}
                         </CardTitle>
-                        <CardDescription>{{ t('olt.settings.addTemplateDesc') }}</CardDescription>
+                        <CardDescription>{{ editingId ? t('olt.settings.editTemplateDesc') : t('olt.settings.addTemplateDesc') }}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <form @submit.prevent="submitTemplate" class="space-y-4">
@@ -111,9 +140,14 @@ defineOptions({ layout: AppLayout });
                                     </div>
                                 </div>
                             </div>
-                            <Button type="submit" class="w-full" :disabled="templateForm.processing">
-                                <Save class="mr-2 h-4 w-4" /> {{ t('olt.settings.saveTemplate') }}
-                            </Button>
+                            <div class="flex gap-2">
+                                <Button type="submit" class="flex-1" :disabled="templateForm.processing">
+                                    <Save class="mr-2 h-4 w-4" /> {{ editingId ? t('olt.settings.updateTemplate') : t('olt.settings.saveTemplate') }}
+                                </Button>
+                                <Button v-if="editingId" type="button" variant="outline" @click="cancelEdit">
+                                    {{ t('common.cancel') }}
+                                </Button>
+                            </div>
                         </form>
                     </CardContent>
                 </Card>
@@ -145,6 +179,10 @@ defineOptions({ layout: AppLayout });
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
+                                            <DropdownMenuItem @click="startEdit(tmpl)">
+                                                <Pencil class="mr-2 h-4 w-4" />
+                                                {{ t('olt.settings.editTemplate') }}
+                                            </DropdownMenuItem>
                                             <DropdownMenuItem @click="setDefault(tmpl.id)">
                                                 <Check class="mr-2 h-4 w-4" :class="tmpl.is_default ? 'text-primary' : 'text-transparent'" />
                                                 {{ t('olt.settings.setAsDefault') }}
