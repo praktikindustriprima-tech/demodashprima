@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { MonitorPlay, X, Clock, ClipboardCheck } from '@lucide/vue';
+import { MonitorPlay, X, Clock, ClipboardCheck, ChevronDown, ChevronUp } from '@lucide/vue';
 import { useSessionStorage } from '@vueuse/core';
 import axios from 'axios';
 import { ref, onMounted, onUnmounted, watch } from 'vue';
@@ -57,6 +57,9 @@ const auditSession = ref<{
 } | null>(null);
 const selectedOnus = ref<Set<string>>(new Set());
 const isInitialLoading = ref(true);
+const recentlySavedOnus = ref<Onu[]>([]);
+const showSavedBanner = ref(false);
+const isBannerExpanded = ref(false);
 
 const connectionState = useSessionStorage('olt-audit-connection-state', {
     activeOltId: null as number | null,
@@ -224,7 +227,41 @@ return;
     auditSession.value.onus.push(...newOnus);
     selectedOnus.value.clear();
 
+    if (newOnus.length > 0) {
+        recentlySavedOnus.value = newOnus;
+        showSavedBanner.value = true;
+        isBannerExpanded.value = false;
+    }
+
     toast.success(`${newOnus.length} ${t('audit.toast.onuAdded')}`);
+};
+
+const addOnuToSession = (onu: Onu) => {
+    if (!auditSession.value) return;
+    if (auditSession.value.onus.some(o => o.sn === onu.sn)) return;
+
+    auditSession.value.onus.push(onu);
+    recentlySavedOnus.value = [onu];
+    showSavedBanner.value = true;
+    isBannerExpanded.value = false;
+
+    toast.success(`1 ${t('audit.toast.onuAdded')}`);
+};
+
+const removeOnuFromSession = (sn: string) => {
+    if (!auditSession.value) return;
+
+    auditSession.value.onus = auditSession.value.onus.filter(o => o.sn !== sn);
+    selectedOnus.value.delete(sn);
+
+    if (recentlySavedOnus.value.length > 0) {
+        recentlySavedOnus.value = recentlySavedOnus.value.filter(o => o.sn !== sn);
+        if (recentlySavedOnus.value.length === 0) {
+            showSavedBanner.value = false;
+        }
+    }
+
+    toast.success(`ONU ${sn} removed`);
 };
 
 const savePermanent = async () => {
@@ -422,6 +459,50 @@ defineOptions({ layout: AppLayout });
                 @close="closeAuditSession"
             />
 
+            <!-- Recently saved ONUs banner -->
+            <div
+                v-if="showSavedBanner && recentlySavedOnus.length > 0"
+                class="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 overflow-hidden"
+            >
+                <div class="flex items-center justify-between px-4 py-3">
+                    <div class="flex items-center gap-2">
+                        <ClipboardCheck class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        <span class="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                            {{ recentlySavedOnus.length }} {{ t('audit.toast.onuAdded') }}
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" class="h-7 px-2 text-emerald-700 dark:text-emerald-300" @click="isBannerExpanded = !isBannerExpanded">
+                            <ChevronDown v-if="!isBannerExpanded" class="h-4 w-4" />
+                            <ChevronUp v-else class="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" class="h-7 px-2 text-emerald-700 dark:text-emerald-300" @click="showSavedBanner = false">
+                            <X class="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+                <div v-if="isBannerExpanded" class="border-t border-emerald-200 dark:border-emerald-800 px-4 py-2 max-h-48 overflow-y-auto">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="text-emerald-600 dark:text-emerald-400">
+                                <th class="py-1 text-left font-medium">#</th>
+                                <th class="py-1 text-left font-medium">OLT Index</th>
+                                <th class="py-1 text-left font-medium">SN</th>
+                                <th class="py-1 text-left font-medium">State</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(onu, i) in recentlySavedOnus" :key="onu.sn" class="text-emerald-700 dark:text-emerald-300">
+                                <td class="py-1">{{ i + 1 }}</td>
+                                <td class="py-1">{{ onu.olt_index }}</td>
+                                <td class="py-1 font-mono">{{ onu.sn }}</td>
+                                <td class="py-1">{{ onu.state }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div v-if="activeOltId" class="flex items-center gap-3 text-sm text-emerald-600 font-medium">
                 <MonitorPlay class="h-4 w-4" />
                 {{ t('audit.connectedTo') }} {{ scanForm.host }}
@@ -454,6 +535,8 @@ defineOptions({ layout: AppLayout });
                 :audit-session="auditSession"
                 :selected-onus="selectedOnus"
                 @save-to-session="saveOnusToSession"
+                @add-to-session="addOnuToSession"
+                @remove-from-session="removeOnuFromSession"
                 @toggle-select="toggleSelectOnu"
                 @select-all="selectAllOnus"
             />

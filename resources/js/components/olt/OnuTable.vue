@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Search, Printer, FileDown, Loader2, Info, BookmarkPlus, Check } from '@lucide/vue';
+import { Search, Printer, FileDown, Loader2, Info, BookmarkPlus, Check, Plus, Minus } from '@lucide/vue';
 import { Radio } from '@lucide/vue';
 import axios from 'axios';
 import { computed, ref } from 'vue';
@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { printToPdf, exportToExcel } from '@/utils';
 
 interface Onu {
@@ -29,6 +30,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     'save-to-session': [onus: Onu[]];
+    'add-to-session': [onu: Onu];
+    'remove-from-session': [sn: string];
     'toggle-select': [sn: string];
     'select-all': [];
 }>();
@@ -171,7 +174,7 @@ const printTable = () => {
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.oltIndex') }}</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.serialNumber') }}</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.status') }}</th>
-                            <th class="h-12 w-12"></th>
+                            <th class="h-12 w-24"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -203,6 +206,26 @@ const printTable = () => {
                                 <span v-else class="text-muted-foreground">{{ onu.state }}</span>
                             </td>
                             <td class="p-4 align-middle">
+                                <div v-if="auditSession" class="flex items-center gap-1">
+                                    <TooltipProvider>
+                                        <Tooltip v-if="!isSaved(onu.sn)">
+                                            <TooltipTrigger as-child>
+                                                <Button variant="ghost" size="icon" class="h-7 w-7 text-emerald-600 hover:text-emerald-700" @click="emit('add-to-session', onu)">
+                                                    <Plus class="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>{{ t('onuTable.addToSession') }}</TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip v-else>
+                                            <TooltipTrigger as-child>
+                                                <Button variant="ghost" size="icon" class="h-7 w-7 text-red-500 hover:text-red-600" @click="emit('remove-from-session', onu.sn)">
+                                                    <Minus class="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>{{ t('onuTable.removeFromSession') }}</TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
                                 <Button variant="ghost" size="sm" @click="showInfo(onu)">
                                     <Info class="h-4 w-4" />
                                 </Button>
@@ -219,7 +242,7 @@ const printTable = () => {
             </span>
             <Button size="sm" @click="emit('save-to-session', selectedOnus.size > 0 ? props.onus.filter(o => selectedOnus.has(o.sn)) : props.onus)">
                 <BookmarkPlus class="mr-2 h-4 w-4" />
-                {{ t('onuTable.saveToSession') }}
+                {{ t('onuTable.saveAllToSession') }}
             </Button>
         </div>
 
