@@ -56,6 +56,7 @@ const auditSession = ref<{
     startedAt: Date;
 } | null>(null);
 const selectedOnus = ref<Set<string>>(new Set());
+const isInitialLoading = ref(true);
 
 const connectionState = useSessionStorage('olt-audit-connection-state', {
     activeOltId: null as number | null,
@@ -87,6 +88,8 @@ onMounted(async () => {
     } catch {
         // No active session
     }
+
+    isInitialLoading.value = false;
 
     // Reconnect to OLT if previously connected (without creating a new session)
     if (connectionState.value.isConnected) {
@@ -390,9 +393,18 @@ defineOptions({ layout: AppLayout });
             @login="doLogin"
         />
 
+        <!-- Loading: checking session -->
+        <div
+            v-if="isInitialLoading"
+            class="flex flex-col items-center justify-center rounded-xl border border-dashed border-sidebar-border/70 dark:border-sidebar-border py-24 gap-3 text-muted-foreground"
+        >
+            <Spinner class="h-8 w-8" />
+            <p class="text-sm">{{ t('common.loading') }}</p>
+        </div>
+
         <!-- Placeholder: belum ada sesi aktif -->
         <div
-            v-if="!auditSession"
+            v-else-if="!auditSession"
             class="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-sidebar-border/70 dark:border-sidebar-border py-24 gap-3 text-muted-foreground cursor-pointer hover:border-primary/50 hover:text-foreground transition-colors"
             @click="isAuditModalOpen = true"
         >
