@@ -22,7 +22,7 @@ const { t } = useI18n();
 
 interface OltOption { id: number; name: string; host: string; }
 interface Template { id: number; name: string; host: string; port: number; username: string; password: string; is_default: boolean; }
-interface Onu { olt_index: string; sn: string; state: string; }
+interface Onu { olt_index: string; model: string; sn: string; pw: string; }
 
 const props = defineProps<{ olts: OltOption[]; templates: Template[] }>();
 

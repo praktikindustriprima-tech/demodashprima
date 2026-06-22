@@ -13,7 +13,8 @@ interface Onu {
     olt_index: string;
     onu_index: string | null;
     sn: string;
-    state: string;
+    model: string;
+    pw: string;
     scanned_at: string;
 }
 
@@ -32,8 +33,9 @@ const props = defineProps<{ session: Session }>();
 
 const onuColumns = [
     { key: 'olt_index' as const, label: t('audit.detail.col.oltIndex') },
+    { key: 'model' as const, label: t('audit.detail.col.model') },
     { key: 'sn' as const, label: t('audit.detail.col.serialNumber') },
-    { key: 'state' as const, label: t('audit.detail.col.status') },
+    { key: 'pw' as const, label: t('audit.detail.col.password') },
     { key: 'scanned_at' as const, label: t('audit.detail.col.scannedAt') },
 ];
 
@@ -118,8 +120,9 @@ defineOptions({ layout: AppLayout });
                         <tr class="border-b border-sidebar-border/70 bg-muted/50 transition-colors dark:border-sidebar-border">
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.detail.col.number') }}</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.detail.col.oltIndex') }}</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.detail.col.model') }}</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.detail.col.serialNumber') }}</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.detail.col.status') }}</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.detail.col.password') }}</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.detail.col.scannedAt') }}</th>
                         </tr>
                     </thead>
@@ -127,8 +130,9 @@ defineOptions({ layout: AppLayout });
                         <tr v-for="(onu, index) in session.onus" :key="onu.olt_index" class="border-b border-sidebar-border/70 transition-colors hover:bg-muted/50 last:border-0 dark:border-sidebar-border">
                             <td class="p-4 align-middle text-muted-foreground">{{ index + 1 }}</td>
                             <td class="p-4 align-middle">{{ onu.olt_index }}</td>
+                            <td class="p-4 align-middle">{{ onu.model }}</td>
                             <td class="p-4 align-middle font-mono">{{ onu.sn }}</td>
-                            <td class="p-4 align-middle">{{ onu.state }}</td>
+                            <td class="p-4 align-middle font-mono">{{ onu.pw }}</td>
                             <td class="p-4 align-middle whitespace-nowrap">{{ new Date(onu.scanned_at).toLocaleString() }}</td>
                         </tr>
                     </tbody>

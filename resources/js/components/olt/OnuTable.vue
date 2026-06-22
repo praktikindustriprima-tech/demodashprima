@@ -15,8 +15,9 @@ import { printToPdf, exportToExcel } from '@/utils';
 
 interface Onu {
     olt_index: string;
+    model: string;
     sn: string;
-    state: string;
+    pw: string;
 }
 
 const props = defineProps<{
@@ -85,14 +86,17 @@ const showInfo = async (onu: Onu) => {
 const filtered = computed(() =>
     props.onus.filter(o =>
         o.sn.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        o.olt_index.toLowerCase().includes(searchQuery.value.toLowerCase())
+        o.olt_index.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+        o.model.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+        o.pw.toLowerCase().includes(searchQuery.value.toLowerCase())
     )
 );
 
 const onuColumns = computed(() => [
     { key: 'olt_index' as const, label: t('onuTable.oltIndex') },
+    { key: 'model' as const, label: t('onuTable.model') },
     { key: 'sn' as const, label: t('onuTable.serialNumber') },
-    { key: 'state' as const, label: t('onuTable.status') },
+    { key: 'pw' as const, label: t('onuTable.password') },
 ]);
 
 const infoLabels = computed<Record<string, string>>(() => ({
@@ -172,14 +176,15 @@ const printTable = () => {
                                 />
                             </th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.oltIndex') }}</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.model') }}</th>
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.serialNumber') }}</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.status') }}</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.password') }}</th>
                             <th class="h-12 w-24"></th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="filtered.length === 0" class="border-b border-sidebar-border/70 transition-colors last:border-0 dark:border-sidebar-border">
-                            <td :colspan="auditSession ? 5 : 4" class="h-24 text-center align-middle">
+                            <td :colspan="auditSession ? 6 : 5" class="h-24 text-center align-middle">
                                 <div v-if="isScanning" class="flex items-center justify-center gap-2 text-muted-foreground">
                                     <Loader2 class="h-4 w-4 animate-spin" />
                                     {{ t('onuTable.scanningForOnus') }}
@@ -195,15 +200,16 @@ const printTable = () => {
                                 />
                             </td>
                             <td class="p-4 align-middle">{{ onu.olt_index }}</td>
+                            <td class="p-4 align-middle">{{ onu.model }}</td>
                             <td class="p-4 align-middle font-mono">{{ onu.sn }}</td>
-                            <td class="p-4 align-middle">
+                            <td class="p-4 align-middle font-mono">
                                 <span
                                     v-if="isSaved(onu.sn)"
                                     class="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300"
                                 >
                                     <Check class="mr-1 h-3 w-3" /> {{ t('onuTable.saved') }}
                                 </span>
-                                <span v-else class="text-muted-foreground">{{ onu.state }}</span>
+                                <span v-else class="text-muted-foreground">{{ onu.pw }}</span>
                             </td>
                             <td class="p-4 align-middle">
                                 <div v-if="auditSession" class="flex items-center gap-1">
@@ -257,12 +263,16 @@ const printTable = () => {
                         <span class="font-mono">{{ selectedOnu.olt_index }}</span>
                     </div>
                     <div class="flex justify-between border-b pb-2">
+                        <span class="text-muted-foreground">{{ t('onuTable.model') }}</span>
+                        <span class="font-mono">{{ selectedOnu.model }}</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-2">
                         <span class="text-muted-foreground">{{ t('onuTable.serialNumber') }}</span>
                         <span class="font-mono">{{ selectedOnu.sn }}</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-muted-foreground">{{ t('onuTable.status') }}</span>
-                        <span>{{ selectedOnu.state }}</span>
+                        <span class="text-muted-foreground">{{ t('onuTable.password') }}</span>
+                        <span class="font-mono">{{ selectedOnu.pw }}</span>
                     </div>
                 </div>
 

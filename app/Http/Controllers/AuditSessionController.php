@@ -79,7 +79,8 @@ class AuditSessionController extends Controller
             'onus.*.olt_index' => 'required|string',
             'onus.*.onu_index' => 'nullable|string',
             'onus.*.sn' => 'required|string',
-            'onus.*.state' => 'required|string',
+            'onus.*.model' => 'required|string',
+            'onus.*.pw' => 'required|string',
         ]);
 
         foreach ($request->onus as $onu) {
@@ -88,7 +89,8 @@ class AuditSessionController extends Controller
                 'olt_index' => $onu['olt_index'],
                 'onu_index' => $onu['onu_index'] ?? null,
                 'sn' => $onu['sn'],
-                'state' => $onu['state'],
+                'model' => $onu['model'],
+                'pw' => $onu['pw'],
                 'scanned_at' => now(),
             ]);
         }
@@ -188,7 +190,8 @@ class AuditSessionController extends Controller
             'onus' => 'required|array|min:1',
             'onus.*.olt_index' => 'required|string',
             'onus.*.sn' => 'required|string',
-            'onus.*.state' => 'required|string',
+            'onus.*.model' => 'required|string',
+            'onus.*.pw' => 'required|string',
         ]);
 
         $existingSns = $session->savedOnus()->pluck('sn')->toArray();
@@ -200,7 +203,8 @@ class AuditSessionController extends Controller
                     'audit_session_id' => $session->id,
                     'olt_index' => $onu['olt_index'],
                     'sn' => $onu['sn'],
-                    'state' => $onu['state'],
+                    'model' => $onu['model'],
+                    'pw' => $onu['pw'],
                     'scanned_at' => now(),
                     'created_at' => now(),
                     'updated_at' => now(),

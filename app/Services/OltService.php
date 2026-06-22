@@ -98,7 +98,7 @@ class OltService
     }
 
     /**
-     * Parse the 'show pon onu unconfigured' output.
+     * Parse the 'show pon onu u' output.
      */
     public function parseUnconfiguredOnus(string $output): array
     {

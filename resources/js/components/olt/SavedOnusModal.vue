@@ -9,8 +9,9 @@ import { printToPdf, exportToExcel } from '@/utils';
 
 interface Onu {
     olt_index: string;
+    model: string;
     sn: string;
-    state: string;
+    pw: string;
 }
 
 const props = defineProps<{
@@ -27,8 +28,9 @@ const { t } = useI18n();
 
 const columns = computed(() => [
     { key: 'olt_index' as const, label: t('onuTable.oltIndex') },
+    { key: 'model' as const, label: t('onuTable.model') },
     { key: 'sn' as const, label: t('onuTable.serialNumber') },
-    { key: 'state' as const, label: t('onuTable.status') },
+    { key: 'pw' as const, label: t('onuTable.password') },
 ]);
 
 const exportToCsv = async () => {
@@ -75,23 +77,25 @@ const printTable = () => {
                             <tr class="border-b border-sidebar-border/70 dark:border-sidebar-border">
                                 <th class="h-10 px-4 text-left font-medium text-muted-foreground">#</th>
                                 <th class="h-10 px-4 text-left font-medium text-muted-foreground">{{ t('onuTable.oltIndex') }}</th>
+                                <th class="h-10 px-4 text-left font-medium text-muted-foreground">{{ t('onuTable.model') }}</th>
                                 <th class="h-10 px-4 text-left font-medium text-muted-foreground">{{ t('onuTable.serialNumber') }}</th>
-                                <th class="h-10 px-4 text-left font-medium text-muted-foreground">{{ t('onuTable.status') }}</th>
+                                <th class="h-10 px-4 text-left font-medium text-muted-foreground">{{ t('onuTable.password') }}</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-if="onus.length === 0">
-                                <td colspan="4" class="h-24 text-center text-muted-foreground">
+                                <td colspan="5" class="h-24 text-center text-muted-foreground">
                                     {{ t('audit.detail.noOnu') }}
                                 </td>
                             </tr>
                             <tr v-for="(onu, i) in onus" :key="onu.sn" class="border-b border-sidebar-border/70 transition-colors hover:bg-muted/50 last:border-0 dark:border-sidebar-border">
                                 <td class="p-4 align-middle text-muted-foreground">{{ i + 1 }}</td>
                                 <td class="p-4 align-middle">{{ onu.olt_index }}</td>
+                                <td class="p-4 align-middle">{{ onu.model }}</td>
                                 <td class="p-4 align-middle font-mono">{{ onu.sn }}</td>
-                                <td class="p-4 align-middle">
+                                <td class="p-4 align-middle font-mono">
                                     <span class="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                                        {{ onu.state }}
+                                        {{ onu.pw }}
                                     </span>
                                 </td>
                             </tr>

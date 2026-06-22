@@ -5,19 +5,22 @@ namespace App\Services;
 class OltCommand
 {
     /**
-     * Parse the 'show gpon onu uncfg' output.
+     * Parse the 'show pon onu unconfigured' output.
      */
     public static function parseUnconfiguredOnus(string $output): array
     {
         $onus = [];
-        $pattern = '/(gpon-onu_\d+\/\d+\/\d+:\d+)\s+([\w]+)\s+([\w]+)/';
+        // OltIndex            Model                SN                 PW
+        // gpon-olt_1/3/14     F670LV9.0            ZTEGD0253352       GD0253352
+        $pattern = '/^(gpon-olt_\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s*$/m';
 
         if (preg_match_all($pattern, $output, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
                 $onus[] = [
                     'olt_index' => $match[1],
-                    'sn' => $match[2],
-                    'state' => $match[3],
+                    'model' => $match[2],
+                    'sn' => $match[3],
+                    'pw' => $match[4],
                 ];
             }
         }
@@ -86,7 +89,13 @@ class OltCommand
      */
     public static function buildGetOnuInfoCommand(string $oltIndex): string
     {
-        $commandIndex = str_replace('gpon-onu_', 'gpon-onu_', $oltIndex);
+        // Convert gpon-olt_x/x/x → gpon-onu_x/x/x:1
+        $commandIndex = str_replace('gpon-olt_', 'gpon-onu_', $oltIndex);
+
+        // Append :1 if not already present
+        if (!str_contains($commandIndex, ':')) {
+            $commandIndex .= ':1';
+        }
 
         return "show gpon onu detail-info {$commandIndex}";
     }
@@ -96,7 +105,7 @@ class OltCommand
      */
     public static function buildScanOnusCommand(): string
     {
-        return 'show gpon onu uncfg';
+        return 'show pon onu u';
     }
 
     // ─── Connection / Setup Commands ───────────────────────────────
