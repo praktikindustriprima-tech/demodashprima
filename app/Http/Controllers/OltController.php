@@ -375,6 +375,13 @@ class OltController extends Controller
 
         $deleted = $query->delete();
 
+        if (request()->expectsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => "Cleared {$deleted} history record(s).",
+            ]);
+        }
+
         return redirect()->back()->with('success', "Cleared {$deleted} history record(s).");
     }
 }

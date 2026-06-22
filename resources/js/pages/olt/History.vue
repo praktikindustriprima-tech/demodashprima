@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { History, FileSpreadsheet, Printer, Filter, ChevronLeft, ChevronRight, Trash2 } from '@lucide/vue';
+import axios from 'axios';
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Heading from '@/components/Heading.vue';
@@ -74,14 +75,18 @@ const isClearing = ref(false);
 
 const clearHistory = () => {
     isClearing.value = true;
-    router.delete('/olt/history', {
-        filter: selectedFilter.value === 'all' ? undefined : selectedFilter.value,
-    }, {
-        preserveState: true,
-        onFinish: () => {
-            isClearing.value = false;
-            showClearConfirm.value = false;
+    showClearConfirm.value = false;
+
+    axios.delete('/olt/history/action', {
+        params: {
+            filter: selectedFilter.value === 'all' ? undefined : selectedFilter.value,
         },
+    }).then(() => {
+        router.reload({ only: ['history'] });
+    }).catch(() => {
+        // silent
+    }).finally(() => {
+        isClearing.value = false;
     });
 };
 
