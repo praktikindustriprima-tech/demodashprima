@@ -367,6 +367,8 @@ export default {
             handshakeFailed: 'Handshake failed',
             createFailed: 'Failed to create audit session',
             onuAdded: 'ONUs added to session',
+            onuRemoved: 'ONU removed from session',
+            removeFailed: 'Failed to remove ONU',
             onuSaved: 'ONUs saved permanently',
             saveFailed: 'Failed to save',
             connectFirst: 'Please connect to a device first',

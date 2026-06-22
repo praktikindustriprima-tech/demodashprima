@@ -367,6 +367,8 @@ export default {
             handshakeFailed: 'Handshake gagal',
             createFailed: 'Gagal membuat sesi audit',
             onuAdded: 'ONU ditambahkan ke sesi',
+            onuRemoved: 'ONU dihapus dari sesi',
+            removeFailed: 'Gagal menghapus ONU',
             onuSaved: 'ONU disimpan permanen',
             saveFailed: 'Gagal menyimpan',
             connectFirst: 'Harap hubungkan ke perangkat terlebih dahulu',

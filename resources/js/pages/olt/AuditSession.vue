@@ -312,6 +312,22 @@ const removeOnuFromSession = (sn: string) => {
     selectedOnus.value.delete(sn);
 };
 
+const removeOnuFromSaved = async (sn: string) => {
+    if (!auditSession.value?.id) {
+        return;
+    }
+
+    try {
+        await axios.delete(`/audit/sessions/${auditSession.value.id}/temporary/onu`, {
+            data: { sn },
+        });
+        auditSession.value.onus = auditSession.value.onus.filter(o => o.sn !== sn);
+        toast.success(t('audit.toast.onuRemoved'));
+    } catch {
+        toast.error(t('audit.toast.removeFailed'));
+    }
+};
+
 const savePermanent = async () => {
     if (!auditSession.value?.id || auditSession.value.onus.length === 0) {
         return;
@@ -627,6 +643,7 @@ defineOptions({ layout: AppLayout });
             v-model:open="isSavedModalOpen"
             :onus="auditSession?.onus || []"
             :session-name="auditSession?.name || ''"
+            @remove="removeOnuFromSaved"
         />
     </div>
 </template>

@@ -240,6 +240,25 @@ class AuditSessionController extends Controller
     }
 
     /**
+     * Remove a single ONU from temporary storage by SN.
+     */
+    public function removeSavedOnu(Request $request, AuditSession $session)
+    {
+        $request->validate([
+            'sn' => 'required|string',
+        ]);
+
+        $session->savedOnus()->where('sn', $request->sn)->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'total' => $session->savedOnus()->count(),
+            ],
+        ]);
+    }
+
+    /**
      * Clear temporarily saved ONUs for a session.
      */
     public function clearTemporary(AuditSession $session)
