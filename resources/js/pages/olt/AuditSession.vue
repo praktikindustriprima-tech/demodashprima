@@ -110,7 +110,7 @@ onMounted(async () => {
                 oltId: s.olt_id,
                 oltName: s.olt?.name || 'Unknown',
                 status: s.status,
-                onus: s.saved_onus || s.onus || [],
+                onus: s.savedOnus || s.saved_onus || s.onus || [],
                 startedAt: new Date(s.started_at),
             };
             hasActiveSession = true;

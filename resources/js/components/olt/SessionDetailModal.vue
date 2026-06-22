@@ -27,6 +27,7 @@ interface Session {
     completed_at: string | null;
     olt: { name: string; host: string } | null;
     onus: Onu[];
+    saved_onus: Onu[];
 }
 
 const props = defineProps<{
@@ -211,6 +212,41 @@ return;
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- Temporary Saved ONUs -->
+                <div v-if="session.status !== 'completed' && session.saved_onus?.length > 0">
+                    <div class="flex items-center gap-2 mt-4 mb-2">
+                        <span class="inline-flex items-center rounded-full bg-yellow-100 dark:bg-yellow-900/50 px-2.5 py-0.5 text-xs font-semibold text-yellow-700 dark:text-yellow-300">
+                            {{ t('audit.modal.temporarySaved') }} ({{ session.saved_onus.length }})
+                        </span>
+                    </div>
+                    <div class="rounded-xl border border-yellow-200 dark:border-yellow-800 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="border-b border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/30 transition-colors">
+                                        <th class="h-10 px-4 text-left align-middle font-medium text-yellow-700 dark:text-yellow-300">#</th>
+                                        <th class="h-10 px-4 text-left align-middle font-medium text-yellow-700 dark:text-yellow-300">{{ t('audit.modal.oltIndex') }}</th>
+                                        <th class="h-10 px-4 text-left align-middle font-medium text-yellow-700 dark:text-yellow-300">{{ t('audit.modal.model') }}</th>
+                                        <th class="h-10 px-4 text-left align-middle font-medium text-yellow-700 dark:text-yellow-300">{{ t('audit.modal.serialNumber') }}</th>
+                                        <th class="h-10 px-4 text-left align-middle font-medium text-yellow-700 dark:text-yellow-300">{{ t('audit.modal.password') }}</th>
+                                        <th class="h-10 px-4 text-left align-middle font-medium text-yellow-700 dark:text-yellow-300">{{ t('audit.modal.scannedAt') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(onu, index) in session.saved_onus" :key="'saved-' + onu.sn" class="border-b border-yellow-200 dark:border-yellow-800 transition-colors hover:bg-yellow-50/50 dark:hover:bg-yellow-950/20 last:border-0">
+                                        <td class="p-3 align-middle text-yellow-600 dark:text-yellow-400">{{ index + 1 }}</td>
+                                        <td class="p-3 align-middle">{{ onu.olt_index }}</td>
+                                        <td class="p-3 align-middle">{{ onu.model }}</td>
+                                        <td class="p-3 align-middle font-mono">{{ onu.sn }}</td>
+                                        <td class="p-3 align-middle font-mono">{{ onu.pw }}</td>
+                                        <td class="p-3 align-middle whitespace-nowrap">{{ new Date(onu.scanned_at).toLocaleString() }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </template>

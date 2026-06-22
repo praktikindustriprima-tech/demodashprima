@@ -148,7 +148,7 @@ class AuditSessionController extends Controller
      */
     public function show(AuditSession $session)
     {
-        $session->load(['onus', 'olt']);
+        $session->load(['onus', 'savedOnus', 'olt']);
 
         if (request()->wantsJson()) {
             return response()->json(['status' => 'success', 'data' => $session]);

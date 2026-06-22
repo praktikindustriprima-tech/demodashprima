@@ -1,6 +1,21 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { Settings, Plus, Save, Trash2, ShieldCheck, Globe, Hash, User, Lock, BookTemplate, MoreVertical, Check, Pencil, X } from '@lucide/vue';
+import {
+    Settings,
+    Plus,
+    Save,
+    Trash2,
+    ShieldCheck,
+    Globe,
+    Hash,
+    User,
+    Lock,
+    BookTemplate,
+    MoreVertical,
+    Check,
+    Pencil,
+    X,
+} from '@lucide/vue';
 import { useLocalStorage } from '@vueuse/core';
 import { onMounted, ref } from 'vue';
 import axios from 'axios';
@@ -9,8 +24,19 @@ import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -18,13 +44,25 @@ import AppLayout from '@/layouts/AppLayout.vue';
 const { t } = useI18n();
 
 interface OltTemplate {
-    id: number; name: string; host: string; port: number; username: string; is_default: boolean;
+    id: number;
+    name: string;
+    host: string;
+    port: number;
+    username: string;
+    is_default: boolean;
 }
 
 defineProps<{ templates: OltTemplate[] }>();
 
 // --- Template form ---
-const templateForm = useForm({ id: null as number | null, name: '', host: '', port: 23, username: '', password: '' });
+const templateForm = useForm({
+    id: null as number | null,
+    name: '',
+    host: '',
+    port: 23,
+    username: '',
+    password: '',
+});
 const defaultForm = useForm({});
 const deleteForm = useForm({});
 const editingId = ref<number | null>(null);
@@ -37,7 +75,8 @@ const submitTemplate = () => {
                 templateForm.reset();
                 editingId.value = null;
             },
-            onError: () => toast.error(t('olt.settings.toast.templateSaveFailed')),
+            onError: () =>
+                toast.error(t('olt.settings.toast.templateSaveFailed')),
         });
     } else {
         templateForm.post('/olt/templates', {
@@ -45,7 +84,8 @@ const submitTemplate = () => {
                 toast.success(t('olt.settings.toast.templateSaved'));
                 templateForm.reset();
             },
-            onError: () => toast.error(t('olt.settings.toast.templateSaveFailed')),
+            onError: () =>
+                toast.error(t('olt.settings.toast.templateSaveFailed')),
         });
     }
 };
@@ -65,7 +105,10 @@ const cancelEdit = () => {
 };
 const deleteTemplate = (id: number) => {
     if (confirm(t('olt.settings.confirm.deleteTemplate'))) {
-        deleteForm.delete(`/olt/templates/${id}`, { onSuccess: () => toast.success(t('olt.settings.toast.templateDeleted')) });
+        deleteForm.delete(`/olt/templates/${id}`, {
+            onSuccess: () =>
+                toast.success(t('olt.settings.toast.templateDeleted')),
+        });
     }
 };
 const setDefault = (id: number) => {
@@ -79,7 +122,9 @@ const autoScanInterval = useLocalStorage('olt-autoscan-interval', 5);
 const autoScanEnabledByDefault = useLocalStorage('olt-autoscan-default', true);
 
 // --- Exclude ONUs ---
-const excludedOnus = ref<Array<{ id: number; sn: string; notes: string | null }>>([]);
+const excludedOnus = ref<
+    Array<{ id: number; sn: string; notes: string | null }>
+>([]);
 const excludeSnInput = ref('');
 const excludeNotesInput = ref('');
 const isAddingExclude = ref(false);
@@ -90,7 +135,9 @@ const fetchExcludedOnus = async () => {
         if (response.data.status === 'success') {
             excludedOnus.value = response.data.data;
         }
-    } catch { /* silent */ }
+    } catch {
+        /* silent */
+    }
 };
 
 const addExcludedSn = async () => {
@@ -118,7 +165,7 @@ const removeExcludedSn = async (id: number) => {
     try {
         const response = await axios.delete(`/audit/excluded-onus/${id}`);
         if (response.data.status === 'success') {
-            excludedOnus.value = excludedOnus.value.filter(o => o.id !== id);
+            excludedOnus.value = excludedOnus.value.filter((o) => o.id !== id);
             toast.success(t('olt.settings.excludeOnus.removed'));
         }
     } catch {
@@ -137,69 +184,140 @@ defineOptions({ layout: AppLayout });
     <Head :title="t('olt.settings.title')" />
 
     <div class="flex h-full flex-1 flex-col gap-8 rounded-xl p-4">
-        <Heading :title="t('olt.settings.title')" :description="t('olt.settings.description')" />
-
-
+        <Heading
+            :title="t('olt.settings.title')"
+            :description="t('olt.settings.description')"
+        />
 
         <!-- Profile Templates Section -->
         <div class="flex flex-col gap-4">
-            <h2 class="text-base font-semibold">{{ t('olt.settings.profileTemplates') }}</h2>
+            <h2 class="text-base font-semibold">
+                {{ t('olt.settings.profileTemplates') }}
+            </h2>
             <div class="grid gap-6 lg:grid-cols-2">
                 <Card>
                     <CardHeader>
                         <CardTitle class="flex items-center gap-2">
                             <Plus v-if="!editingId" class="h-5 w-5" />
                             <Pencil v-else class="h-5 w-5" />
-                            {{ editingId ? t('olt.settings.editTemplate') : t('olt.settings.addTemplate') }}
+                            {{
+                                editingId
+                                    ? t('olt.settings.editTemplate')
+                                    : t('olt.settings.addTemplate')
+                            }}
                         </CardTitle>
-                        <CardDescription>{{ editingId ? t('olt.settings.editTemplateDesc') : t('olt.settings.addTemplateDesc') }}</CardDescription>
+                        <CardDescription>{{
+                            editingId
+                                ? t('olt.settings.editTemplateDesc')
+                                : t('olt.settings.addTemplateDesc')
+                        }}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <form @submit.prevent="submitTemplate" class="space-y-4">
+                        <form
+                            @submit.prevent="submitTemplate"
+                            class="space-y-4"
+                        >
                             <div class="space-y-2">
-                                <Label>{{ t('olt.settings.templateName') }}</Label>
+                                <Label>{{
+                                    t('olt.settings.templateName')
+                                }}</Label>
                                 <div class="relative">
-                                    <Hash class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input v-model="templateForm.name" placeholder="Office ZTE" class="pl-8" required />
+                                    <Hash
+                                        class="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground"
+                                    />
+                                    <Input
+                                        v-model="templateForm.name"
+                                        placeholder="Office ZTE"
+                                        class="pl-8"
+                                        required
+                                    />
                                 </div>
                             </div>
                             <div class="grid grid-cols-3 gap-4">
                                 <div class="col-span-2 space-y-2">
                                     <Label>{{ t('olt.settings.host') }}</Label>
                                     <div class="relative">
-                                        <Globe class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input v-model="templateForm.host" placeholder="192.168.1.1" class="pl-8" required />
+                                        <Globe
+                                            class="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground"
+                                        />
+                                        <Input
+                                            v-model="templateForm.host"
+                                            placeholder="192.168.1.1"
+                                            class="pl-8"
+                                            required
+                                        />
                                     </div>
                                 </div>
                                 <div class="space-y-2">
                                     <Label>{{ t('olt.settings.port') }}</Label>
                                     <div class="relative">
-                                        <Hash class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input v-model="templateForm.port" type="number" placeholder="23" class="pl-8" required />
+                                        <Hash
+                                            class="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground"
+                                        />
+                                        <Input
+                                            v-model="templateForm.port"
+                                            type="number"
+                                            placeholder="23"
+                                            class="pl-8"
+                                            required
+                                        />
                                     </div>
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="space-y-2">
-                                    <Label>{{ t('olt.settings.username') }}</Label>
+                                    <Label>{{
+                                        t('olt.settings.username')
+                                    }}</Label>
                                     <div class="relative">
-                                        <User class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input v-model="templateForm.username" placeholder="zte" class="pl-8" required />
+                                        <User
+                                            class="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground"
+                                        />
+                                        <Input
+                                            v-model="templateForm.username"
+                                            placeholder="zte"
+                                            class="pl-8"
+                                            required
+                                        />
                                     </div>
                                 </div>
                                 <div class="space-y-2">
-                                    <Label>{{ t('olt.settings.password') }}</Label>
+                                    <Label>{{
+                                        t('olt.settings.password')
+                                    }}</Label>
                                     <div class="relative">
-                                        <Lock class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input v-model="templateForm.password" type="password" placeholder="••••••••" class="pl-8" required />
+                                        <Lock
+                                            class="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground"
+                                        />
+                                        <Input
+                                            v-model="templateForm.password"
+                                            type="password"
+                                            placeholder="••••••••"
+                                            class="pl-8"
+                                            required
+                                        />
                                     </div>
                                 </div>
                             </div>
                             <div class="flex gap-2">
-                                <Button type="submit" class="flex-1" :disabled="templateForm.processing">
-                                    <Save class="mr-2 h-4 w-4" /> {{ editingId ? t('olt.settings.updateTemplate') : t('olt.settings.saveTemplate') }}
+                                <Button
+                                    type="submit"
+                                    class="flex-1"
+                                    :disabled="templateForm.processing"
+                                >
+                                    <Save class="mr-2 h-4 w-4" />
+                                    {{
+                                        editingId
+                                            ? t('olt.settings.updateTemplate')
+                                            : t('olt.settings.saveTemplate')
+                                    }}
                                 </Button>
-                                <Button v-if="editingId" type="button" variant="outline" @click="cancelEdit">
+                                <Button
+                                    v-if="editingId"
+                                    type="button"
+                                    variant="outline"
+                                    @click="cancelEdit"
+                                >
                                     {{ t('common.cancel') }}
                                 </Button>
                             </div>
@@ -209,42 +327,102 @@ defineOptions({ layout: AppLayout });
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>{{ t('olt.settings.savedTemplates') }}</CardTitle>
-                        <CardDescription>{{ t('olt.settings.savedTemplatesDesc') }}</CardDescription>
+                        <CardTitle>{{
+                            t('olt.settings.savedTemplates')
+                        }}</CardTitle>
+                        <CardDescription>{{
+                            t('olt.settings.savedTemplatesDesc')
+                        }}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div class="space-y-3">
-                            <div v-if="templates.length === 0" class="flex h-32 flex-col items-center justify-center rounded-lg border border-dashed text-muted-foreground">
+                            <div
+                                v-if="templates.length === 0"
+                                class="flex h-32 flex-col items-center justify-center rounded-lg border border-dashed text-muted-foreground"
+                            >
                                 <Globe class="mb-2 h-8 w-8 opacity-20" />
                                 <p>{{ t('olt.settings.noTemplates') }}</p>
                             </div>
-                            <div v-for="tmpl in templates" :key="tmpl.id" class="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors" :class="tmpl.is_default ? 'border-primary/50 bg-primary/5' : ''">
+                            <div
+                                v-for="tmpl in templates"
+                                :key="tmpl.id"
+                                class="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                                :class="
+                                    tmpl.is_default
+                                        ? 'border-primary/50 bg-primary/5'
+                                        : ''
+                                "
+                            >
                                 <div>
                                     <div class="flex items-center gap-2">
-                                        <h4 class="font-medium leading-none">{{ tmpl.name }}</h4>
-                                        <Badge v-if="tmpl.is_default" variant="outline" class="text-[10px] h-4 text-primary border-primary">{{ t('olt.settings.default') }}</Badge>
+                                        <h4 class="leading-none font-medium">
+                                            {{ tmpl.name }}
+                                        </h4>
+                                        <Badge
+                                            v-if="tmpl.is_default"
+                                            variant="outline"
+                                            class="h-4 border-primary text-[10px] text-primary"
+                                            >{{
+                                                t('olt.settings.default')
+                                            }}</Badge
+                                        >
                                     </div>
-                                    <p class="text-xs text-muted-foreground mt-1">{{ tmpl.host }}:{{ tmpl.port }} · {{ tmpl.username }}</p>
+                                    <p
+                                        class="mt-1 text-xs text-muted-foreground"
+                                    >
+                                        {{ tmpl.host }}:{{ tmpl.port }} ·
+                                        {{ tmpl.username }}
+                                    </p>
                                 </div>
                                 <div class="flex gap-1">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger as-child>
-                                            <Button variant="ghost" size="icon" class="text-muted-foreground">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                class="text-muted-foreground"
+                                            >
                                                 <MoreVertical class="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuItem @click="startEdit(tmpl)">
+                                            <DropdownMenuItem
+                                                @click="startEdit(tmpl)"
+                                            >
                                                 <Pencil class="mr-2 h-4 w-4" />
-                                                {{ t('olt.settings.editTemplate') }}
+                                                {{
+                                                    t(
+                                                        'olt.settings.editTemplate',
+                                                    )
+                                                }}
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem @click="setDefault(tmpl.id)">
-                                                <Check class="mr-2 h-4 w-4" :class="tmpl.is_default ? 'text-primary' : 'text-transparent'" />
-                                                {{ t('olt.settings.setAsDefault') }}
+                                            <DropdownMenuItem
+                                                @click="setDefault(tmpl.id)"
+                                            >
+                                                <Check
+                                                    class="mr-2 h-4 w-4"
+                                                    :class="
+                                                        tmpl.is_default
+                                                            ? 'text-primary'
+                                                            : 'text-transparent'
+                                                    "
+                                                />
+                                                {{
+                                                    t(
+                                                        'olt.settings.setAsDefault',
+                                                    )
+                                                }}
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem class="text-red-500 focus:text-red-500" @click="deleteTemplate(tmpl.id)">
+                                            <DropdownMenuItem
+                                                class="text-red-500 focus:text-red-500"
+                                                @click="deleteTemplate(tmpl.id)"
+                                            >
                                                 <Trash2 class="mr-2 h-4 w-4" />
-                                                {{ t('olt.settings.deleteTemplate') }}
+                                                {{
+                                                    t(
+                                                        'olt.settings.deleteTemplate',
+                                                    )
+                                                }}
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
@@ -258,56 +436,95 @@ defineOptions({ layout: AppLayout });
 
         <!-- Quick Scan Preferences -->
         <div class="flex flex-col gap-4">
-            <h2 class="text-base font-semibold">{{ t('olt.settings.preferences') }}</h2>
+            <h2 class="text-base font-semibold">
+                {{ t('olt.settings.preferences') }}
+            </h2>
             <Card>
                 <CardContent class="space-y-4">
-                    <label class="flex items-center justify-between cursor-pointer select-none">
+                    <label
+                        class="flex cursor-pointer items-center justify-between select-none"
+                    >
                         <div>
-                            <p class="font-medium text-sm">{{ t('olt.settings.autoReconnectTitle') }}</p>
-                            <p class="text-xs text-muted-foreground mt-0.5">{{ t('olt.settings.autoReconnectDesc') }}</p>
+                            <p class="text-sm font-medium">
+                                {{ t('olt.settings.autoReconnectTitle') }}
+                            </p>
+                            <p class="mt-0.5 text-xs text-muted-foreground">
+                                {{ t('olt.settings.autoReconnectDesc') }}
+                            </p>
                         </div>
                         <button
                             type="button"
                             role="switch"
                             :aria-checked="autoReconnect"
                             :class="autoReconnect ? 'bg-primary' : 'bg-input'"
-                            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                             @click="autoReconnect = !autoReconnect"
                         >
                             <span
-                                :class="autoReconnect ? 'translate-x-5' : 'translate-x-0'"
+                                :class="
+                                    autoReconnect
+                                        ? 'translate-x-5'
+                                        : 'translate-x-0'
+                                "
                                 class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform"
                             />
                         </button>
                     </label>
 
-                    <div class="border-t border-sidebar-border/70 dark:border-sidebar-border pt-4">
-                        <label class="flex items-center justify-between cursor-pointer select-none">
+                    <div
+                        class="border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border"
+                    >
+                        <label
+                            class="flex cursor-pointer items-center justify-between select-none"
+                        >
                             <div>
-                                <p class="font-medium text-sm">{{ t('olt.settings.autoScanDefaultTitle') }}</p>
-                                <p class="text-xs text-muted-foreground mt-0.5">{{ t('olt.settings.autoScanDefaultDesc') }}</p>
+                                <p class="text-sm font-medium">
+                                    {{ t('olt.settings.autoScanDefaultTitle') }}
+                                </p>
+                                <p class="mt-0.5 text-xs text-muted-foreground">
+                                    {{ t('olt.settings.autoScanDefaultDesc') }}
+                                </p>
                             </div>
                             <button
                                 type="button"
                                 role="switch"
                                 :aria-checked="autoScanEnabledByDefault"
-                                :class="autoScanEnabledByDefault ? 'bg-primary' : 'bg-input'"
-                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                @click="autoScanEnabledByDefault = !autoScanEnabledByDefault"
+                                :class="
+                                    autoScanEnabledByDefault
+                                        ? 'bg-primary'
+                                        : 'bg-input'
+                                "
+                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                                @click="
+                                    autoScanEnabledByDefault =
+                                        !autoScanEnabledByDefault
+                                "
                             >
                                 <span
-                                    :class="autoScanEnabledByDefault ? 'translate-x-5' : 'translate-x-0'"
+                                    :class="
+                                        autoScanEnabledByDefault
+                                            ? 'translate-x-5'
+                                            : 'translate-x-0'
+                                    "
                                     class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform"
                                 />
                             </button>
                         </label>
                     </div>
 
-                    <div class="border-t border-sidebar-border/70 dark:border-sidebar-border pt-4">
+                    <div
+                        class="border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border"
+                    >
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="font-medium text-sm">{{ t('olt.settings.autoScanIntervalTitle') }}</p>
-                                <p class="text-xs text-muted-foreground mt-0.5">{{ t('olt.settings.autoScanIntervalDesc') }}</p>
+                                <p class="text-sm font-medium">
+                                    {{
+                                        t('olt.settings.autoScanIntervalTitle')
+                                    }}
+                                </p>
+                                <p class="mt-0.5 text-xs text-muted-foreground">
+                                    {{ t('olt.settings.autoScanIntervalDesc') }}
+                                </p>
                             </div>
                             <div class="flex items-center gap-2">
                                 <Input
@@ -317,7 +534,9 @@ defineOptions({ layout: AppLayout });
                                     max="60"
                                     class="w-20 text-center"
                                 />
-                                <span class="text-sm text-muted-foreground">{{ t('olt.settings.seconds') }}</span>
+                                <span class="text-sm text-muted-foreground">{{
+                                    t('olt.settings.seconds')
+                                }}</span>
                             </div>
                         </div>
                     </div>
@@ -327,56 +546,91 @@ defineOptions({ layout: AppLayout });
 
         <!-- Exclude Serial Numbers Section -->
         <div class="flex flex-col gap-4">
-            <h2 class="text-base font-semibold">{{ t('olt.settings.excludeOnus.title') }}</h2>
+            <h2 class="text-base font-semibold">
+                {{ t('olt.settings.excludeOnus.title') }}
+            </h2>
             <Card>
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
                         <ShieldCheck class="h-5 w-5" />
                         {{ t('olt.settings.excludeOnus.title') }}
                     </CardTitle>
-                    <CardDescription>{{ t('olt.settings.excludeOnus.description') }}</CardDescription>
+                    <CardDescription>{{
+                        t('olt.settings.excludeOnus.description')
+                    }}</CardDescription>
                 </CardHeader>
                 <CardContent class="space-y-4">
                     <!-- Add form -->
                     <div class="flex items-end gap-2">
                         <div class="flex-1 space-y-2">
-                            <Label>{{ t('olt.settings.excludeOnus.snLabel') }}</Label>
+                            <Label>{{
+                                t('olt.settings.excludeOnus.snLabel')
+                            }}</Label>
                             <Input
                                 v-model="excludeSnInput"
-                                :placeholder="t('olt.settings.excludeOnus.snPlaceholder')"
+                                :placeholder="
+                                    t('olt.settings.excludeOnus.snPlaceholder')
+                                "
                                 @keyup.enter="addExcludedSn"
                             />
                         </div>
                         <div class="flex-1 space-y-2">
-                            <Label>{{ t('olt.settings.excludeOnus.notesLabel') }}</Label>
+                            <Label>{{
+                                t('olt.settings.excludeOnus.notesLabel')
+                            }}</Label>
                             <Input
                                 v-model="excludeNotesInput"
-                                :placeholder="t('olt.settings.excludeOnus.notesPlaceholder')"
+                                :placeholder="
+                                    t(
+                                        'olt.settings.excludeOnus.notesPlaceholder',
+                                    )
+                                "
                                 @keyup.enter="addExcludedSn"
                             />
                         </div>
-                        <Button @click="addExcludedSn" :disabled="isAddingExclude || !excludeSnInput.trim()">
+                        <Button
+                            @click="addExcludedSn"
+                            :disabled="
+                                isAddingExclude || !excludeSnInput.trim()
+                            "
+                        >
                             <Plus class="mr-2 h-4 w-4" />
                             {{ t('olt.settings.excludeOnus.addSn') }}
                         </Button>
                     </div>
 
                     <!-- List -->
-                    <div v-if="excludedOnus.length === 0" class="flex h-24 flex-col items-center justify-center rounded-lg border border-dashed text-muted-foreground">
+                    <div
+                        v-if="excludedOnus.length === 0"
+                        class="flex h-24 flex-col items-center justify-center rounded-lg border border-dashed text-muted-foreground"
+                    >
                         <ShieldCheck class="mb-2 h-8 w-8 opacity-20" />
-                        <p class="text-sm">{{ t('olt.settings.excludeOnus.empty') }}</p>
+                        <p class="text-sm">
+                            {{ t('olt.settings.excludeOnus.empty') }}
+                        </p>
                     </div>
                     <div v-else class="space-y-2">
                         <div
                             v-for="item in excludedOnus"
                             :key="item.id"
-                            class="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                            class="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
                         >
                             <div class="flex-1">
-                                <span class="font-mono font-medium">{{ item.sn }}</span>
-                                <span v-if="item.notes" class="ml-3 text-xs text-muted-foreground">{{ item.notes }}</span>
+                                <span class="font-mono font-medium">{{
+                                    item.sn
+                                }}</span>
+                                <span
+                                    v-if="item.notes"
+                                    class="ml-3 text-xs text-muted-foreground"
+                                    >{{ item.notes }}</span
+                                >
                             </div>
-                            <Button variant="ghost" size="icon" class="h-7 w-7 text-red-500 hover:text-red-600" @click="removeExcludedSn(item.id)">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                class="h-7 w-7 text-red-500 hover:text-red-600"
+                                @click="removeExcludedSn(item.id)"
+                            >
                                 <X class="h-4 w-4" />
                             </Button>
                         </div>
@@ -385,69 +639,13 @@ defineOptions({ layout: AppLayout });
             </Card>
         </div>
 
-        <!-- Exclude Serial Numbers Section -->
-        <div class="flex flex-col gap-4">
-            <h2 class="text-base font-semibold">{{ t('olt.settings.excludeOnus.title') }}</h2>
-            <Card>
-                <CardHeader>
-                    <CardTitle class="flex items-center gap-2">
-                        <ShieldCheck class="h-5 w-5" />
-                        {{ t('olt.settings.excludeOnus.title') }}
-                    </CardTitle>
-                    <CardDescription>{{ t('olt.settings.excludeOnus.description') }}</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-4">
-                    <!-- Add form -->
-                    <div class="flex items-end gap-2">
-                        <div class="flex-1 space-y-2">
-                            <Label>{{ t('olt.settings.excludeOnus.snLabel') }}</Label>
-                            <Input
-                                v-model="excludeSnInput"
-                                :placeholder="t('olt.settings.excludeOnus.snPlaceholder')"
-                                @keyup.enter="addExcludedSn"
-                            />
-                        </div>
-                        <div class="flex-1 space-y-2">
-                            <Label>{{ t('olt.settings.excludeOnus.notesLabel') }}</Label>
-                            <Input
-                                v-model="excludeNotesInput"
-                                :placeholder="t('olt.settings.excludeOnus.notesPlaceholder')"
-                                @keyup.enter="addExcludedSn"
-                            />
-                        </div>
-                        <Button @click="addExcludedSn" :disabled="isAddingExclude || !excludeSnInput.trim()">
-                            <Plus class="mr-2 h-4 w-4" />
-                            {{ t('olt.settings.excludeOnus.addSn') }}
-                        </Button>
-                    </div>
-
-                    <!-- List -->
-                    <div v-if="excludedOnus.length === 0" class="flex h-24 flex-col items-center justify-center rounded-lg border border-dashed text-muted-foreground">
-                        <ShieldCheck class="mb-2 h-8 w-8 opacity-20" />
-                        <p class="text-sm">{{ t('olt.settings.excludeOnus.empty') }}</p>
-                    </div>
-                    <div v-else class="space-y-2">
-                        <div
-                            v-for="item in excludedOnus"
-                            :key="item.id"
-                            class="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
-                        >
-                            <div class="flex-1">
-                                <span class="font-mono font-medium">{{ item.sn }}</span>
-                                <span v-if="item.notes" class="ml-3 text-xs text-muted-foreground">{{ item.notes }}</span>
-                            </div>
-                            <Button variant="ghost" size="icon" class="h-7 w-7 text-red-500 hover:text-red-600" @click="removeExcludedSn(item.id)">
-                                <X class="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-
-        <div class="rounded-lg bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-            <div class="flex items-center gap-2 font-medium mb-1">
-                <ShieldCheck class="h-4 w-4" /> {{ t('olt.settings.securityNote') }}
+        <!-- Security Note -->
+        <div
+            class="rounded-lg bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+        >
+            <div class="mb-1 flex items-center gap-2 font-medium">
+                <ShieldCheck class="h-4 w-4" />
+                {{ t('olt.settings.securityNote') }}
             </div>
             {{ t('olt.settings.securityNoteDesc') }}
         </div>

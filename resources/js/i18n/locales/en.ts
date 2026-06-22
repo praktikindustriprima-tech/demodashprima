@@ -323,6 +323,7 @@ export default {
             failedToLoadSession: 'Failed to load session detail',
             sessionStopped: 'Session ended successfully',
             failedToStopSession: 'Failed to end session',
+            temporarySaved: 'Temporary Saved ONUs',
             col: {
                 number: '#',
                 oltIndex: 'OLT Index',

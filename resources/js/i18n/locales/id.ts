@@ -323,6 +323,7 @@ export default {
             failedToLoadSession: 'Gagal memuat detail sesi',
             sessionStopped: 'Sesi berhasil diakhiri',
             failedToStopSession: 'Gagal mengakhiri sesi',
+            temporarySaved: 'ONU Tersimpan Sementara',
             col: {
                 number: '#',
                 oltIndex: 'Indeks OLT',

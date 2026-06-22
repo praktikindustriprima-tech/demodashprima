@@ -16,7 +16,8 @@ class AuditSessionSavedOnu extends Model
         'audit_session_id',
         'olt_index',
         'sn',
-        'state',
+        'model',
+        'pw',
         'scanned_at',
     ];
 
