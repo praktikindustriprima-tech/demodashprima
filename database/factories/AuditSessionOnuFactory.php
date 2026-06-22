@@ -14,11 +14,10 @@ class AuditSessionOnuFactory extends Factory
     {
         return [
             'audit_session_id' => AuditSession::factory(),
-            'olt_index' => '1/1/'.fake()->numberBetween(1, 64),
+            'olt_index' => 'gpon-onu_1/1/'.fake()->numberBetween(1, 64).':'.fake()->numberBetween(1, 128),
             'onu_index' => fake()->numberBetween(1, 128),
             'sn' => 'ZTEG'.fake()->numerify('############'),
-            'model' => fake()->randomElement(['ZTE-F670L', 'ZTE-F6600P', 'ZTE-F601']),
-            'pw' => fake()->bothify('????####'),
+            'state' => fake()->randomElement(['unknown', 'online', 'offline']),
             'scanned_at' => now(),
         ];
     }

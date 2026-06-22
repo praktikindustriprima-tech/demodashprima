@@ -176,6 +176,7 @@ class OltController extends Controller
             return response()->json([
                 'status' => 'success',
                 'data' => $onus,
+                'raw' => $output,
                 'olt_id' => $olt->id,
                 'olt_name' => $olt->name,
             ]);

@@ -10,7 +10,7 @@ interface AuditSession {
     oltId: number;
     oltName: string;
     status: 'active' | 'completed';
-    onus: Array<{ olt_index: string; model: string; sn: string; pw: string }>;
+    onus: Array<{ olt_index: string; sn: string; state: string }>;
     startedAt: Date;
 }
 

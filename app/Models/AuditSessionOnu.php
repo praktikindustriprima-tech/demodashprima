@@ -15,8 +15,7 @@ class AuditSessionOnu extends Model
         'olt_index',
         'onu_index',
         'sn',
-        'model',
-        'pw',
+        'state',
         'scanned_at',
     ];
 

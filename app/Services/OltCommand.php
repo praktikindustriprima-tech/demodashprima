@@ -5,20 +5,19 @@ namespace App\Services;
 class OltCommand
 {
     /**
-     * Parse the 'show pon onu unconfigured' output.
+     * Parse the 'show gpon onu uncfg' output.
      */
     public static function parseUnconfiguredOnus(string $output): array
     {
         $onus = [];
-        $pattern = '/(gpon-olt_\d+\/\d+\/\d+)\s+([\w\.\/A-Z\-]+)\s+([\w]+)\s+([\w]+)/';
+        $pattern = '/(gpon-onu_\d+\/\d+\/\d+:\d+)\s+([\w]+)\s+([\w]+)/';
 
         if (preg_match_all($pattern, $output, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
                 $onus[] = [
                     'olt_index' => $match[1],
-                    'model' => $match[2],
-                    'sn' => $match[3],
-                    'pw' => $match[4],
+                    'sn' => $match[2],
+                    'state' => $match[3],
                 ];
             }
         }
@@ -87,9 +86,9 @@ class OltCommand
      */
     public static function buildGetOnuInfoCommand(string $oltIndex): string
     {
-        $commandIndex = str_replace('gpon-olt_', 'gpon-olt ', $oltIndex);
+        $commandIndex = str_replace('gpon-onu_', 'gpon-onu_', $oltIndex);
 
-        return "show gpon onu info {$commandIndex}";
+        return "show gpon onu detail-info {$commandIndex}";
     }
 
     /**
@@ -97,7 +96,7 @@ class OltCommand
      */
     public static function buildScanOnusCommand(): string
     {
-        return 'show pon onu u';
+        return 'show gpon onu uncfg';
     }
 
     // ─── Connection / Setup Commands ───────────────────────────────

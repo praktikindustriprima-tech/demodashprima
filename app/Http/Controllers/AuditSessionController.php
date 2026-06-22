@@ -78,8 +78,7 @@ class AuditSessionController extends Controller
             'onus.*.olt_index' => 'required|string',
             'onus.*.onu_index' => 'nullable|string',
             'onus.*.sn' => 'required|string',
-            'onus.*.model' => 'required|string',
-            'onus.*.pw' => 'required|string',
+            'onus.*.state' => 'required|string',
         ]);
 
         foreach ($request->onus as $onu) {
@@ -88,8 +87,7 @@ class AuditSessionController extends Controller
                 'olt_index' => $onu['olt_index'],
                 'onu_index' => $onu['onu_index'] ?? null,
                 'sn' => $onu['sn'],
-                'model' => $onu['model'],
-                'pw' => $onu['pw'],
+                'state' => $onu['state'],
                 'scanned_at' => now(),
             ]);
         }

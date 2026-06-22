@@ -61,8 +61,8 @@ it('can save ONUs to a session', function () {
 
     $response = $this->actingAs($user)->postJson("/audit/sessions/{$session->id}/save", [
         'onus' => [
-            ['olt_index' => '1/1/1', 'sn' => 'ZTEG00000001', 'model' => 'ZTE-F670L', 'pw' => 'pass1'],
-            ['olt_index' => '1/1/2', 'sn' => 'ZTEG00000002', 'model' => 'ZTE-F670L', 'pw' => 'pass2'],
+            ['olt_index' => 'gpon-onu_1/1/1:1', 'sn' => 'ZTEG00000001', 'state' => 'unknown'],
+            ['olt_index' => 'gpon-onu_1/1/2:1', 'sn' => 'ZTEG00000002', 'state' => 'unknown'],
         ],
     ]);
 
@@ -165,7 +165,7 @@ it('cannot save to inactive session', function () {
 
     $response = $this->actingAs($user)->postJson("/audit/sessions/{$session->id}/save", [
         'onus' => [
-            ['olt_index' => '1/1/1', 'sn' => 'ZTEG00000001', 'model' => 'ZTE-F670L', 'pw' => 'pass1'],
+            ['olt_index' => 'gpon-onu_1/1/1:1', 'sn' => 'ZTEG00000001', 'state' => 'unknown'],
         ],
     ]);
 

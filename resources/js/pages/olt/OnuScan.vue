@@ -18,8 +18,8 @@ import AppLayout from '@/layouts/AppLayout.vue';
 const { t } = useI18n();
 
 interface OltOption { id: number; name: string; host: string; }
-interface Template { id: number; name: string; host: string; port: number; username: string; is_default: boolean; }
-interface Onu { olt_index: string; model: string; sn: string; pw: string; }
+interface Template { id: number; name: string; host: string; port: number; username: string; password: string; is_default: boolean; }
+interface Onu { olt_index: string; sn: string; state: string; }
 
 const props = defineProps<{ olts: OltOption[]; templates: Template[] }>();
 
@@ -28,6 +28,7 @@ const isBannerModalOpen = ref(false);
 const capturedBanner = ref('');
 const activeOltId = ref<number | null>(null);
 const onus = ref<Onu[]>([]);
+const rawOutput = ref('');
 const isScanning = ref(false);
 const isFetchingBanner = ref(false);
 const isRunningCommand = ref(false);
@@ -103,6 +104,7 @@ const doLogin = async () => {
 
         if (scanResponse.data.status === 'success') {
             onus.value = scanResponse.data.data;
+            rawOutput.value = scanResponse.data.raw || '';
             activeOltId.value = scanResponse.data.olt_id;
 
             connectionState.value = {
@@ -152,6 +154,7 @@ const quickConnect = async () => {
 
         if (scanResponse.data.status === 'success') {
             onus.value = scanResponse.data.data;
+            rawOutput.value = scanResponse.data.raw || '';
             activeOltId.value = scanResponse.data.olt_id;
 
             connectionState.value = {
@@ -222,6 +225,7 @@ return;
 
             if (response.data.status === 'success') {
                 onus.value = response.data.data;
+                rawOutput.value = response.data.raw || '';
                 lastCheckedAt.value = new Date();
             }
         } catch { /* silent */ } finally {
@@ -338,5 +342,12 @@ defineOptions({ layout: AppLayout });
             :audit-session="null"
             :selected-onus="new Set()"
         />
+
+        <div v-if="rawOutput" class="rounded-xl border border-sidebar-border/70 dark:border-sidebar-border overflow-hidden">
+            <div class="bg-muted/50 px-4 py-2 border-b border-sidebar-border/70 dark:border-sidebar-border">
+                <h3 class="text-sm font-medium text-muted-foreground">Raw Output</h3>
+            </div>
+            <pre class="p-4 font-mono text-xs text-emerald-400 bg-slate-950 overflow-auto max-h-[300px] whitespace-pre-wrap">{{ rawOutput }}</pre>
+        </div>
     </div>
 </template>

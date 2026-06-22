@@ -13,8 +13,7 @@ interface Onu {
     olt_index: string;
     onu_index: string | null;
     sn: string;
-    model: string;
-    pw: string;
+    state: string;
     scanned_at: string;
 }
 
@@ -71,9 +70,8 @@ watch(() => props.open, (isOpen) => {
 
 const onuColumns = computed(() => [
     { key: 'olt_index' as const, label: t('audit.modal.oltIndex') },
-    { key: 'model' as const, label: t('audit.modal.model') },
     { key: 'sn' as const, label: t('audit.modal.serialNumber') },
-    { key: 'pw' as const, label: t('audit.modal.password') },
+    { key: 'state' as const, label: t('audit.modal.status') },
     { key: 'scanned_at' as const, label: t('audit.modal.scannedAt') },
 ]);
 
@@ -195,9 +193,8 @@ return;
                                 <tr class="border-b border-sidebar-border/70 bg-muted/50 transition-colors dark:border-sidebar-border">
                                     <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">#</th>
                                     <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.modal.oltIndex') }}</th>
-                                    <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.modal.model') }}</th>
                                     <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.modal.serialNumber') }}</th>
-                                    <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.modal.password') }}</th>
+                                    <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.modal.status') }}</th>
                                     <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('audit.modal.scannedAt') }}</th>
                                 </tr>
                             </thead>
@@ -205,9 +202,8 @@ return;
                                 <tr v-for="(onu, index) in session.onus" :key="onu.olt_index" class="border-b border-sidebar-border/70 transition-colors hover:bg-muted/50 last:border-0 dark:border-sidebar-border">
                                     <td class="p-3 align-middle text-muted-foreground">{{ index + 1 }}</td>
                                     <td class="p-3 align-middle">{{ onu.olt_index }}</td>
-                                    <td class="p-3 align-middle">{{ onu.model }}</td>
                                     <td class="p-3 align-middle font-mono">{{ onu.sn }}</td>
-                                    <td class="p-3 align-middle font-mono">{{ onu.pw }}</td>
+                                    <td class="p-3 align-middle">{{ onu.state }}</td>
                                     <td class="p-3 align-middle whitespace-nowrap">{{ new Date(onu.scanned_at).toLocaleString() }}</td>
                                 </tr>
                             </tbody>

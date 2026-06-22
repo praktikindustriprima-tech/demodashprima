@@ -20,8 +20,8 @@ import AppLayout from '@/layouts/AppLayout.vue';
 const { t } = useI18n();
 
 interface OltOption { id: number; name: string; host: string; }
-interface Template { id: number; name: string; host: string; port: number; username: string; is_default: boolean; }
-interface Onu { olt_index: string; model: string; sn: string; pw: string; }
+interface Template { id: number; name: string; host: string; port: number; username: string; password: string; is_default: boolean; }
+interface Onu { olt_index: string; sn: string; state: string; }
 
 const props = defineProps<{ olts: OltOption[]; templates: Template[] }>();
 
