@@ -191,6 +191,21 @@ export default {
             confirm: {
                 deleteTemplate: 'Delete this template?',
             },
+            excludeOnus: {
+                title: 'Exclude Serial Numbers',
+                description: 'SNs in this list will not be added to audit sessions during scan.',
+                addSn: 'Add SN',
+                snPlaceholder: 'Enter serial number',
+                notesPlaceholder: 'Optional notes',
+                empty: 'No excluded serial numbers yet.',
+                excluded: 'Excluded',
+                snLabel: 'Serial Number',
+                notesLabel: 'Notes',
+                added: 'SN added to exclude list',
+                addFailed: 'Failed to add SN',
+                removed: 'SN removed from exclude list',
+                removeFailed: 'Failed to remove SN',
+            },
         },
         scan: {
             headTitle: 'ONU Scan',
@@ -230,6 +245,9 @@ export default {
         lastScan: 'Last scan:',
         disconnect: 'Disconnect',
         autoScan: 'Auto-scan ({interval}s)',
+        excludedOnus: {
+            title: '{count} ONU excluded from scan',
+        },
         detail: {
             back: 'Back',
             oltLabel: 'OLT',
@@ -397,6 +415,7 @@ export default {
         connectToOlt: 'Connect to an OLT to start scanning for ONUs.',
         noUnconfiguredOnus: 'No unconfigured ONUs found.',
         saved: 'Saved',
+        excluded: 'Excluded',
         selectedCount: '{count} ONU selected',
         availableCount: '{count} ONU available',
         saveToSession: 'Save to Session',

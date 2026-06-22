@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3';
-import { Settings, Plus, Save, Trash2, ShieldCheck, Globe, Hash, User, Lock, BookTemplate, MoreVertical, Check, Pencil } from '@lucide/vue';
+import { Settings, Plus, Save, Trash2, ShieldCheck, Globe, Hash, User, Lock, BookTemplate, MoreVertical, Check, Pencil, X } from '@lucide/vue';
 import { useLocalStorage } from '@vueuse/core';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
+import axios from 'axios';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
@@ -76,6 +77,58 @@ const setDefault = (id: number) => {
 const autoReconnect = useLocalStorage('olt-auto-reconnect', true);
 const autoScanInterval = useLocalStorage('olt-autoscan-interval', 5);
 const autoScanEnabledByDefault = useLocalStorage('olt-autoscan-default', true);
+
+// --- Exclude ONUs ---
+const excludedOnus = ref<Array<{ id: number; sn: string; notes: string | null }>>([]);
+const excludeSnInput = ref('');
+const excludeNotesInput = ref('');
+const isAddingExclude = ref(false);
+
+const fetchExcludedOnus = async () => {
+    try {
+        const response = await axios.get('/audit/excluded-onus');
+        if (response.data.status === 'success') {
+            excludedOnus.value = response.data.data;
+        }
+    } catch { /* silent */ }
+};
+
+const addExcludedSn = async () => {
+    if (!excludeSnInput.value.trim()) return;
+    isAddingExclude.value = true;
+    try {
+        const response = await axios.post('/audit/excluded-onus', {
+            sn: excludeSnInput.value.trim(),
+            notes: excludeNotesInput.value.trim() || null,
+        });
+        if (response.data.status === 'success') {
+            excludedOnus.value.unshift(response.data.data);
+            excludeSnInput.value = '';
+            excludeNotesInput.value = '';
+            toast.success(t('olt.settings.excludeOnus.added'));
+        }
+    } catch {
+        toast.error(t('olt.settings.excludeOnus.addFailed'));
+    } finally {
+        isAddingExclude.value = false;
+    }
+};
+
+const removeExcludedSn = async (id: number) => {
+    try {
+        const response = await axios.delete(`/audit/excluded-onus/${id}`);
+        if (response.data.status === 'success') {
+            excludedOnus.value = excludedOnus.value.filter(o => o.id !== id);
+            toast.success(t('olt.settings.excludeOnus.removed'));
+        }
+    } catch {
+        toast.error(t('olt.settings.excludeOnus.removeFailed'));
+    }
+};
+
+onMounted(() => {
+    fetchExcludedOnus();
+});
 
 defineOptions({ layout: AppLayout });
 </script>
@@ -266,6 +319,126 @@ defineOptions({ layout: AppLayout });
                                 />
                                 <span class="text-sm text-muted-foreground">{{ t('olt.settings.seconds') }}</span>
                             </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+
+        <!-- Exclude Serial Numbers Section -->
+        <div class="flex flex-col gap-4">
+            <h2 class="text-base font-semibold">{{ t('olt.settings.excludeOnus.title') }}</h2>
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <ShieldCheck class="h-5 w-5" />
+                        {{ t('olt.settings.excludeOnus.title') }}
+                    </CardTitle>
+                    <CardDescription>{{ t('olt.settings.excludeOnus.description') }}</CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-4">
+                    <!-- Add form -->
+                    <div class="flex items-end gap-2">
+                        <div class="flex-1 space-y-2">
+                            <Label>{{ t('olt.settings.excludeOnus.snLabel') }}</Label>
+                            <Input
+                                v-model="excludeSnInput"
+                                :placeholder="t('olt.settings.excludeOnus.snPlaceholder')"
+                                @keyup.enter="addExcludedSn"
+                            />
+                        </div>
+                        <div class="flex-1 space-y-2">
+                            <Label>{{ t('olt.settings.excludeOnus.notesLabel') }}</Label>
+                            <Input
+                                v-model="excludeNotesInput"
+                                :placeholder="t('olt.settings.excludeOnus.notesPlaceholder')"
+                                @keyup.enter="addExcludedSn"
+                            />
+                        </div>
+                        <Button @click="addExcludedSn" :disabled="isAddingExclude || !excludeSnInput.trim()">
+                            <Plus class="mr-2 h-4 w-4" />
+                            {{ t('olt.settings.excludeOnus.addSn') }}
+                        </Button>
+                    </div>
+
+                    <!-- List -->
+                    <div v-if="excludedOnus.length === 0" class="flex h-24 flex-col items-center justify-center rounded-lg border border-dashed text-muted-foreground">
+                        <ShieldCheck class="mb-2 h-8 w-8 opacity-20" />
+                        <p class="text-sm">{{ t('olt.settings.excludeOnus.empty') }}</p>
+                    </div>
+                    <div v-else class="space-y-2">
+                        <div
+                            v-for="item in excludedOnus"
+                            :key="item.id"
+                            class="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                        >
+                            <div class="flex-1">
+                                <span class="font-mono font-medium">{{ item.sn }}</span>
+                                <span v-if="item.notes" class="ml-3 text-xs text-muted-foreground">{{ item.notes }}</span>
+                            </div>
+                            <Button variant="ghost" size="icon" class="h-7 w-7 text-red-500 hover:text-red-600" @click="removeExcludedSn(item.id)">
+                                <X class="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+
+        <!-- Exclude Serial Numbers Section -->
+        <div class="flex flex-col gap-4">
+            <h2 class="text-base font-semibold">{{ t('olt.settings.excludeOnus.title') }}</h2>
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <ShieldCheck class="h-5 w-5" />
+                        {{ t('olt.settings.excludeOnus.title') }}
+                    </CardTitle>
+                    <CardDescription>{{ t('olt.settings.excludeOnus.description') }}</CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-4">
+                    <!-- Add form -->
+                    <div class="flex items-end gap-2">
+                        <div class="flex-1 space-y-2">
+                            <Label>{{ t('olt.settings.excludeOnus.snLabel') }}</Label>
+                            <Input
+                                v-model="excludeSnInput"
+                                :placeholder="t('olt.settings.excludeOnus.snPlaceholder')"
+                                @keyup.enter="addExcludedSn"
+                            />
+                        </div>
+                        <div class="flex-1 space-y-2">
+                            <Label>{{ t('olt.settings.excludeOnus.notesLabel') }}</Label>
+                            <Input
+                                v-model="excludeNotesInput"
+                                :placeholder="t('olt.settings.excludeOnus.notesPlaceholder')"
+                                @keyup.enter="addExcludedSn"
+                            />
+                        </div>
+                        <Button @click="addExcludedSn" :disabled="isAddingExclude || !excludeSnInput.trim()">
+                            <Plus class="mr-2 h-4 w-4" />
+                            {{ t('olt.settings.excludeOnus.addSn') }}
+                        </Button>
+                    </div>
+
+                    <!-- List -->
+                    <div v-if="excludedOnus.length === 0" class="flex h-24 flex-col items-center justify-center rounded-lg border border-dashed text-muted-foreground">
+                        <ShieldCheck class="mb-2 h-8 w-8 opacity-20" />
+                        <p class="text-sm">{{ t('olt.settings.excludeOnus.empty') }}</p>
+                    </div>
+                    <div v-else class="space-y-2">
+                        <div
+                            v-for="item in excludedOnus"
+                            :key="item.id"
+                            class="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                        >
+                            <div class="flex-1">
+                                <span class="font-mono font-medium">{{ item.sn }}</span>
+                                <span v-if="item.notes" class="ml-3 text-xs text-muted-foreground">{{ item.notes }}</span>
+                            </div>
+                            <Button variant="ghost" size="icon" class="h-7 w-7 text-red-500 hover:text-red-600" @click="removeExcludedSn(item.id)">
+                                <X class="h-4 w-4" />
+                            </Button>
                         </div>
                     </div>
                 </CardContent>

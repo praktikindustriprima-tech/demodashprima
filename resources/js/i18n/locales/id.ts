@@ -191,6 +191,21 @@ export default {
             confirm: {
                 deleteTemplate: 'Hapus templat ini?',
             },
+            excludeOnus: {
+                title: 'Daftar SN yang Dikecualikan',
+                description: 'SN dalam daftar ini tidak akan ditambahkan ke sesi audit saat pemindaian.',
+                addSn: 'Tambah SN',
+                snPlaceholder: 'Masukkan nomor seri',
+                notesPlaceholder: 'Catatan opsional',
+                empty: 'Belum ada nomor seri yang dikecualikan.',
+                excluded: 'Dikecualikan',
+                snLabel: 'Nomor Seri',
+                notesLabel: 'Catatan',
+                added: 'SN berhasil ditambahkan ke daftar pengecualian',
+                addFailed: 'Gagal menambahkan SN',
+                removed: 'SN berhasil dihapus dari daftar pengecualian',
+                removeFailed: 'Gagal menghapus SN',
+            },
         },
         scan: {
             headTitle: 'Pindai ONU',
@@ -230,6 +245,9 @@ export default {
         lastScan: 'Pindai terakhir:',
         disconnect: 'Putuskan',
         autoScan: 'Pindai otomatis (5d)',
+        excludedOnus: {
+            title: '{count} ONU dikecualikan dari pemindaian',
+        },
         detail: {
             back: 'Kembali',
             oltLabel: 'OLT',
@@ -397,6 +415,7 @@ export default {
         connectToOlt: 'Hubungkan ke OLT untuk mulai memindai ONU.',
         noUnconfiguredOnus: 'Tidak ada ONU yang belum dikonfigurasi.',
         saved: 'Tersimpan',
+        excluded: 'Dikecualikan',
         selectedCount: '{count} ONU dipilih',
         availableCount: '{count} ONU tersedia',
         saveToSession: 'Simpan ke Sesi',

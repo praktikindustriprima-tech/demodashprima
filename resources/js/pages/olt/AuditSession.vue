@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { MonitorPlay, X, Clock, ClipboardCheck } from '@lucide/vue';
+import { MonitorPlay, X, Clock, ClipboardCheck, ShieldOff, ChevronDown } from '@lucide/vue';
 import { useLocalStorage, useSessionStorage } from '@vueuse/core';
 import axios from 'axios';
 import { ref, onMounted, onUnmounted, watch } from 'vue';
@@ -40,6 +40,31 @@ const autoScanDefaultEnabled = useLocalStorage('olt-autoscan-default', true);
 const autoScanSeconds = useLocalStorage('olt-autoscan-interval', 5);
 const knownSnSet = ref<Set<string>>(new Set());
 const isFirstAutoScan = ref(true);
+
+// Exclude list
+const excludedSnSet = ref<Set<string>>(new Set());
+const scannedExcludedOnus = ref<Onu[]>([]);
+const isExcludedPanelOpen = ref(false);
+
+const fetchExcludedOnus = async () => {
+    try {
+        const response = await axios.get('/audit/excluded-onus');
+        if (response.data.status === 'success') {
+            excludedSnSet.value = new Set(
+                response.data.data.map((o: { sn: string }) => o.sn.toUpperCase())
+            );
+        }
+    } catch { /* silent */ }
+};
+
+const trackScannedExcluded = (scannedOnus: Onu[]) => {
+    const newExcluded = scannedOnus.filter(o => excludedSnSet.value.has(o.sn.toUpperCase()));
+    const existingSns = new Set(scannedExcludedOnus.value.map(o => o.sn));
+    const fresh = newExcluded.filter(o => !existingSns.has(o.sn));
+    if (fresh.length > 0) {
+        scannedExcludedOnus.value.push(...fresh);
+    }
+};
 
 // Connect dialog & banner
 const isConnectModalOpen = ref(false);
@@ -96,6 +121,8 @@ onMounted(async () => {
     }
 
     isInitialLoading.value = false;
+
+    await fetchExcludedOnus();
 
     // Reconnect to OLT if previously connected (without creating a new session)
     if (connectionState.value.isConnected) {
@@ -166,6 +193,7 @@ const doLogin = async (createSession = true) => {
         if (scanResponse.data.status === 'success') {
             onus.value = scanResponse.data.data;
             activeOltId.value = scanResponse.data.olt_id;
+            trackScannedExcluded(scanResponse.data.data);
 
             connectionState.value = {
                 activeOltId: scanResponse.data.olt_id,
@@ -251,7 +279,7 @@ const saveOnusToSession = (onusToSave: Onu[]) => {
     }
 
     const existingSns = new Set(auditSession.value.onus.map(o => o.sn));
-    const newOnus = onusToSave.filter(o => !existingSns.has(o.sn));
+    const newOnus = onusToSave.filter(o => !existingSns.has(o.sn) && !excludedSnSet.value.has(o.sn.toUpperCase()));
     auditSession.value.onus.push(...newOnus);
     selectedOnus.value.clear();
 
@@ -387,10 +415,11 @@ const startAutoScan = () => {
                 const scannedOnus: Onu[] = response.data.data;
                 onus.value = scannedOnus;
                 lastCheckedAt.value = new Date();
+                trackScannedExcluded(scannedOnus);
 
                 if (auditSession.value) {
                     if (isFirstAutoScan.value) {
-                        const newOnus = scannedOnus.filter(o => !knownSnSet.value.has(o.sn));
+                        const newOnus = scannedOnus.filter(o => !knownSnSet.value.has(o.sn) && !excludedSnSet.value.has(o.sn.toUpperCase()));
 
                         if (newOnus.length > 0) {
                             newOnus.forEach(o => knownSnSet.value.add(o.sn));
@@ -401,7 +430,7 @@ const startAutoScan = () => {
 
                         isFirstAutoScan.value = false;
                     } else {
-                        const newOnus = scannedOnus.filter(o => !knownSnSet.value.has(o.sn));
+                        const newOnus = scannedOnus.filter(o => !knownSnSet.value.has(o.sn) && !excludedSnSet.value.has(o.sn.toUpperCase()));
 
                         if (newOnus.length > 0) {
                             newOnus.forEach(o => knownSnSet.value.add(o.sn));
@@ -546,12 +575,52 @@ defineOptions({ layout: AppLayout });
                 :olt-id="activeOltId"
                 :audit-session="auditSession"
                 :selected-onus="selectedOnus"
+                :excluded-sn-set="excludedSnSet"
                 @save-to-session="saveOnusToSession"
                 @add-to-session="addOnuToSession"
                 @remove-from-session="removeOnuFromSession"
                 @toggle-select="toggleSelectOnu"
                 @select-all="selectAllOnus"
             />
+
+            <!-- Scanned but excluded ONUs section -->
+            <div v-if="scannedExcludedOnus.length > 0" class="flex flex-col gap-2">
+                <button
+                    class="flex items-center justify-between rounded-lg border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors cursor-pointer select-none"
+                    @click="isExcludedPanelOpen = !isExcludedPanelOpen"
+                >
+                    <span class="flex items-center gap-2">
+                        <ShieldOff class="h-4 w-4" />
+                        {{ t('audit.excludedOnus.title', { count: scannedExcludedOnus.length }) }}
+                    </span>
+                    <ChevronDown class="h-4 w-4 transition-transform" :class="isExcludedPanelOpen ? 'rotate-180' : ''" />
+                </button>
+                <div v-if="isExcludedPanelOpen" class="rounded-lg border border-sidebar-border/70 dark:border-sidebar-border overflow-hidden">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-sidebar-border/70 bg-muted/50 dark:border-sidebar-border">
+                                <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.oltIndex') }}</th>
+                                <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.model') }}</th>
+                                <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.serialNumber') }}</th>
+                                <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.password') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="onu in scannedExcludedOnus" :key="onu.sn" class="border-b border-sidebar-border/70 last:border-0 dark:border-sidebar-border bg-muted/20 opacity-60">
+                                <td class="px-4 py-2 align-middle">{{ onu.olt_index }}</td>
+                                <td class="px-4 py-2 align-middle">{{ onu.model }}</td>
+                                <td class="px-4 py-2 align-middle font-mono">
+                                    {{ onu.sn }}
+                                    <span class="ml-2 inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                        {{ t('olt.settings.excludeOnus.excluded') }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2 align-middle font-mono">{{ onu.pw }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </template>
 
         <SavedOnusModal
