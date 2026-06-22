@@ -328,6 +328,9 @@ export default {
             oltLabel: 'OLT:',
             saving: 'Saving...',
             savePermanently: 'Save Permanently',
+            showSaved: 'Saved Data',
+            savedDataTitle: 'Saved Session Data',
+            onuCount: 'ONUs saved',
         },
         toast: {
             activeSession: 'You have an active audit session:',
@@ -347,6 +350,7 @@ export default {
             connectOltFailed: 'Failed to connect to OLT',
             autoScanEnabled: 'Auto-scan enabled (every 5s)',
             autoScanDisabled: 'Auto-scan disabled',
+            newOnuDetected: 'new ONU(s) detected',
         },
     },
     history: {

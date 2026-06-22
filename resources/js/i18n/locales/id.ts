@@ -328,6 +328,9 @@ export default {
             oltLabel: 'OLT:',
             saving: 'Menyimpan...',
             savePermanently: 'Simpan Permanen',
+            showSaved: 'Data Tersimpan',
+            savedDataTitle: 'Data Tersimpan Sesi',
+            onuCount: 'ONU tersimpan',
         },
         toast: {
             activeSession: 'Anda memiliki sesi audit aktif:',
@@ -347,6 +350,7 @@ export default {
             connectOltFailed: 'Gagal terhubung ke OLT',
             autoScanEnabled: 'Pindai otomatis diaktifkan (setiap 5d)',
             autoScanDisabled: 'Pindai otomatis dinonaktifkan',
+            newOnuDetected: 'ONU baru terdeteksi',
         },
     },
     history: {

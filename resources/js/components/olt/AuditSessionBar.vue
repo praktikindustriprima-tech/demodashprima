@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ClipboardCheck, Save, X, Play } from '@lucide/vue';
+import { ClipboardCheck, Save, X, Play, Eye } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -25,12 +25,11 @@ const emit = defineEmits<{
     start: [];
     save: [];
     close: [];
-    resume: [];
+    'show-saved': [];
 }>();
 </script>
 
 <template>
-    <!-- No active session -->
     <div v-if="!session" class="flex items-center gap-3 rounded-xl border border-dashed border-sidebar-border/70 dark:border-sidebar-border bg-muted/30 px-4 py-3">
         <ClipboardCheck class="h-5 w-5 text-muted-foreground" />
         <span class="text-sm text-muted-foreground flex-1">{{ t('audit.bar.noSessionHint') }}</span>
@@ -40,7 +39,6 @@ const emit = defineEmits<{
         </Button>
     </div>
 
-    <!-- Active session -->
     <div v-else class="flex items-center gap-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3">
         <ClipboardCheck class="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
         <div class="flex-1 min-w-0">
@@ -52,6 +50,10 @@ const emit = defineEmits<{
             </div>
             <p class="text-xs text-muted-foreground truncate">{{ t('audit.bar.oltLabel') }} {{ session.oltName }}</p>
         </div>
+        <Button variant="outline" size="sm" :disabled="session.onus.length === 0" @click="emit('show-saved')">
+            <Eye class="mr-2 h-4 w-4" />
+            {{ t('audit.bar.showSaved') }}
+        </Button>
         <Button
             variant="outline"
             size="sm"

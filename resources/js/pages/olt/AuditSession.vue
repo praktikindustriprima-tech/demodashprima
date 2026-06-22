@@ -13,6 +13,7 @@ import BannerModal from '@/components/olt/BannerModal.vue';
 import ConnectDialog from '@/components/olt/ConnectDialog.vue';
 import DiagnosticsPanel from '@/components/olt/DiagnosticsPanel.vue';
 import OnuTable from '@/components/olt/OnuTable.vue';
+import SavedOnusModal from '@/components/olt/SavedOnusModal.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -35,6 +36,8 @@ const isAutoScanning = ref(false);
 const hasConnectedOnce = ref(false);
 const lastCheckedAt = ref<Date | null>(null);
 let autoScanInterval: ReturnType<typeof setInterval> | null = null;
+const knownSnSet = ref<Set<string>>(new Set());
+const isFirstAutoScan = ref(true);
 
 // Connect dialog & banner
 const isConnectModalOpen = ref(false);
@@ -60,6 +63,7 @@ const isInitialLoading = ref(true);
 const recentlySavedOnus = ref<Onu[]>([]);
 const showSavedBanner = ref(false);
 const isBannerExpanded = ref(false);
+const isSavedModalOpen = ref(false);
 
 const connectionState = useSessionStorage('olt-audit-connection-state', {
     activeOltId: null as number | null,
@@ -102,6 +106,11 @@ onMounted(async () => {
         scanForm.value.username = connectionState.value.username;
         scanForm.value.password = connectionState.value.password;
         await doLogin(false);
+
+        if (hasActiveSession && auditSession.value) {
+            autoScanEnabled.value = true;
+            startAutoScan();
+        }
     }
 });
 
@@ -205,6 +214,12 @@ const createAuditSession = async (oltId: number, oltName: string) => {
                 startedAt: new Date(),
             };
             pendingSessionName.value = '';
+
+            if (!autoScanEnabled.value) {
+                autoScanEnabled.value = true;
+                startAutoScan();
+                toast.success(t('audit.toast.autoScanEnabled'));
+            }
         }
     } catch (error: any) {
         toast.error(error.response?.data?.message || t('audit.toast.createFailed'));
@@ -219,8 +234,8 @@ const disconnect = () => {
 
 const saveOnusToSession = (onusToSave: Onu[]) => {
     if (!auditSession.value) {
-return;
-}
+        return;
+    }
 
     const existingSns = new Set(auditSession.value.onus.map(o => o.sn));
     const newOnus = onusToSave.filter(o => !existingSns.has(o.sn));
@@ -237,8 +252,13 @@ return;
 };
 
 const addOnuToSession = (onu: Onu) => {
-    if (!auditSession.value) return;
-    if (auditSession.value.onus.some(o => o.sn === onu.sn)) return;
+    if (!auditSession.value) {
+        return;
+    }
+
+    if (auditSession.value.onus.some(o => o.sn === onu.sn)) {
+        return;
+    }
 
     auditSession.value.onus.push(onu);
     recentlySavedOnus.value = [onu];
@@ -249,13 +269,16 @@ const addOnuToSession = (onu: Onu) => {
 };
 
 const removeOnuFromSession = (sn: string) => {
-    if (!auditSession.value) return;
+    if (!auditSession.value) {
+        return;
+    }
 
     auditSession.value.onus = auditSession.value.onus.filter(o => o.sn !== sn);
     selectedOnus.value.delete(sn);
 
     if (recentlySavedOnus.value.length > 0) {
         recentlySavedOnus.value = recentlySavedOnus.value.filter(o => o.sn !== sn);
+
         if (recentlySavedOnus.value.length === 0) {
             showSavedBanner.value = false;
         }
@@ -266,8 +289,8 @@ const removeOnuFromSession = (sn: string) => {
 
 const savePermanent = async () => {
     if (!auditSession.value?.id || auditSession.value.onus.length === 0) {
-return;
-}
+        return;
+    }
 
     isSavingAudit.value = true;
 
@@ -294,6 +317,8 @@ const closeAuditSession = () => {
 
     auditSession.value = null;
     selectedOnus.value.clear();
+    stopAutoScan();
+    autoScanEnabled.value = false;
 };
 
 const toggleSelectOnu = (sn: string) => {
@@ -343,13 +368,16 @@ const runDiagnostic = async (diag: { label: string; command: string; action: str
 
 const startAutoScan = () => {
     if (autoScanInterval) {
-return;
-}
+        return;
+    }
+
+    isFirstAutoScan.value = true;
+    knownSnSet.value = new Set(auditSession.value?.onus.map(o => o.sn) || []);
 
     autoScanInterval = setInterval(async () => {
         if (!connectionState.value.isConnected || isScanning.value) {
-return;
-}
+            return;
+        }
 
         isAutoScanning.value = true;
 
@@ -357,8 +385,37 @@ return;
             const response = await axios.post('/olt/scan', { olt_id: connectionState.value.activeOltId });
 
             if (response.data.status === 'success') {
-                onus.value = response.data.data;
+                const scannedOnus: Onu[] = response.data.data;
+                onus.value = scannedOnus;
                 lastCheckedAt.value = new Date();
+
+                if (auditSession.value) {
+                    if (isFirstAutoScan.value) {
+                        const newOnus = scannedOnus.filter(o => !knownSnSet.value.has(o.sn));
+
+                        if (newOnus.length > 0) {
+                            newOnus.forEach(o => knownSnSet.value.add(o.sn));
+                            auditSession.value.onus.push(...newOnus);
+                            recentlySavedOnus.value = newOnus;
+                            showSavedBanner.value = true;
+                            isBannerExpanded.value = false;
+                            toast.success(`${newOnus.length} ${t('audit.toast.onuAdded')}`);
+                        }
+
+                        isFirstAutoScan.value = false;
+                    } else {
+                        const newOnus = scannedOnus.filter(o => !knownSnSet.value.has(o.sn));
+
+                        if (newOnus.length > 0) {
+                            newOnus.forEach(o => knownSnSet.value.add(o.sn));
+                            auditSession.value.onus.push(...newOnus);
+                            recentlySavedOnus.value = newOnus;
+                            showSavedBanner.value = true;
+                            isBannerExpanded.value = false;
+                            toast.success(`${newOnus.length} ${t('audit.toast.newOnuDetected')}`);
+                        }
+                    }
+                }
             }
         } catch { /* silent */ } finally {
             isAutoScanning.value = false;
@@ -371,6 +428,9 @@ const stopAutoScan = () => {
         clearInterval(autoScanInterval);
         autoScanInterval = null;
     }
+
+    isFirstAutoScan.value = true;
+    knownSnSet.value = new Set();
 };
 
 const toggleAutoScan = () => {
@@ -457,6 +517,7 @@ defineOptions({ layout: AppLayout });
                 @start="isAuditModalOpen = true"
                 @save="savePermanent"
                 @close="closeAuditSession"
+                @show-saved="isSavedModalOpen = true"
             />
 
             <!-- Recently saved ONUs banner -->
@@ -541,5 +602,11 @@ defineOptions({ layout: AppLayout });
                 @select-all="selectAllOnus"
             />
         </template>
+
+        <SavedOnusModal
+            v-model:open="isSavedModalOpen"
+            :onus="auditSession?.onus || []"
+            :session-name="auditSession?.name || ''"
+        />
     </div>
 </template>
