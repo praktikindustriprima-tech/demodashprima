@@ -201,16 +201,16 @@ const printTable = () => {
                             </td>
                             <td class="p-4 align-middle">{{ onu.olt_index }}</td>
                             <td class="p-4 align-middle">{{ onu.model }}</td>
-                            <td class="p-4 align-middle font-mono">{{ onu.sn }}</td>
                             <td class="p-4 align-middle font-mono">
+                                {{ onu.sn }}
                                 <span
                                     v-if="isSaved(onu.sn)"
-                                    class="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300"
+                                    class="ml-2 inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300"
                                 >
-                                    <Check class="mr-1 h-3 w-3" /> {{ t('onuTable.saved') }}
+                                    <Check class="mr-0.5 h-2.5 w-2.5" /> {{ t('onuTable.saved') }}
                                 </span>
-                                <span v-else class="text-muted-foreground">{{ onu.pw }}</span>
                             </td>
+                            <td class="p-4 align-middle font-mono">{{ onu.pw }}</td>
                             <td class="p-4 align-middle">
                                 <div v-if="auditSession" class="flex items-center gap-1">
                                     <TooltipProvider>
