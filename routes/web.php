@@ -38,6 +38,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('audit/sessions/active', [AuditSessionController::class, 'active'])->name('audit.sessions.active');
     Route::get('audit/sessions/{session}', [AuditSessionController::class, 'show'])->name('audit.sessions.show');
     Route::post('audit/sessions/{session}/save', [AuditSessionController::class, 'saveOnus'])->name('audit.sessions.save');
+    Route::post('audit/sessions/{session}/temporary', [AuditSessionController::class, 'saveTemporary'])->name('audit.sessions.temporary.save');
+    Route::get('audit/sessions/{session}/temporary', [AuditSessionController::class, 'loadTemporary'])->name('audit.sessions.temporary.load');
+    Route::delete('audit/sessions/{session}/temporary', [AuditSessionController::class, 'clearTemporary'])->name('audit.sessions.temporary.clear');
     Route::post('audit/sessions/{session}/complete', [AuditSessionController::class, 'complete'])->name('audit.sessions.complete');
     Route::delete('audit/sessions/{session}', [AuditSessionController::class, 'destroy'])->name('audit.sessions.destroy');
 

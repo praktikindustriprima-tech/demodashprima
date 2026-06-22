@@ -40,4 +40,9 @@ class AuditSession extends Model
     {
         return $this->hasMany(AuditSessionOnu::class);
     }
+
+    public function savedOnus(): HasMany
+    {
+        return $this->hasMany(AuditSessionSavedOnu::class);
+    }
 }

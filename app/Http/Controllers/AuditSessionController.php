@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\AuditSessionDeleteRequest;
 use App\Models\AuditSession;
 use App\Models\AuditSessionOnu;
+use App\Models\AuditSessionSavedOnu;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -159,7 +160,7 @@ class AuditSessionController extends Controller
      */
     public function active()
     {
-        $session = AuditSession::with(['olt', 'onus'])
+        $session = AuditSession::with(['olt', 'onus', 'savedOnus'])
             ->where('user_id', Auth::id())
             ->where('status', 'active')
             ->latest()
@@ -168,6 +169,82 @@ class AuditSessionController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $session,
+        ]);
+    }
+
+    /**
+     * Save ONUs to temporary storage (survives page refresh).
+     */
+    public function saveTemporary(Request $request, AuditSession $session)
+    {
+        if ($session->status !== 'active') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Session is not active.',
+            ], 400);
+        }
+
+        $request->validate([
+            'onus' => 'required|array|min:1',
+            'onus.*.olt_index' => 'required|string',
+            'onus.*.sn' => 'required|string',
+            'onus.*.state' => 'required|string',
+        ]);
+
+        $existingSns = $session->savedOnus()->pluck('sn')->toArray();
+        $newOnus = [];
+
+        foreach ($request->onus as $onu) {
+            if (!in_array($onu['sn'], $existingSns)) {
+                $newOnus[] = [
+                    'audit_session_id' => $session->id,
+                    'olt_index' => $onu['olt_index'],
+                    'sn' => $onu['sn'],
+                    'state' => $onu['state'],
+                    'scanned_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+                $existingSns[] = $onu['sn'];
+            }
+        }
+
+        if (!empty($newOnus)) {
+            $session->savedOnus()->insert($newOnus);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'added' => count($newOnus),
+                'total' => $session->savedOnus()->count(),
+            ],
+        ]);
+    }
+
+    /**
+     * Load temporarily saved ONUs for a session.
+     */
+    public function loadTemporary(AuditSession $session)
+    {
+        $savedOnus = $session->savedOnus()->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $savedOnus,
+        ]);
+    }
+
+    /**
+     * Clear temporarily saved ONUs for a session.
+     */
+    public function clearTemporary(AuditSession $session)
+    {
+        $session->savedOnus()->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Temporary data cleared.',
         ]);
     }
 

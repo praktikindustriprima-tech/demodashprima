@@ -86,7 +86,7 @@ onMounted(async () => {
                 oltId: s.olt_id,
                 oltName: s.olt?.name || 'Unknown',
                 status: s.status,
-                onus: s.onus || [],
+                onus: s.saved_onus || s.onus || [],
                 startedAt: new Date(s.started_at),
             };
             hasActiveSession = true;
@@ -232,6 +232,20 @@ const disconnect = () => {
     connectionState.value = { activeOltId: null, host: '', port: 23, username: '', password: '', isConnected: false };
 };
 
+const persistTemporaryOnus = async (onusToSave: Onu[]) => {
+    if (!auditSession.value?.id || onusToSave.length === 0) {
+        return;
+    }
+
+    try {
+        await axios.post(`/audit/sessions/${auditSession.value.id}/temporary`, {
+            onus: onusToSave,
+        });
+    } catch {
+        // silent - data still in local state
+    }
+};
+
 const saveOnusToSession = (onusToSave: Onu[]) => {
     if (!auditSession.value) {
         return;
@@ -246,6 +260,7 @@ const saveOnusToSession = (onusToSave: Onu[]) => {
         recentlySavedOnus.value = newOnus;
         showSavedBanner.value = true;
         isBannerExpanded.value = false;
+        persistTemporaryOnus(newOnus);
     }
 
     toast.success(`${newOnus.length} ${t('audit.toast.onuAdded')}`);
@@ -264,6 +279,7 @@ const addOnuToSession = (onu: Onu) => {
     recentlySavedOnus.value = [onu];
     showSavedBanner.value = true;
     isBannerExpanded.value = false;
+    persistTemporaryOnus([onu]);
 
     toast.success(`1 ${t('audit.toast.onuAdded')}`);
 };
@@ -300,6 +316,7 @@ const savePermanent = async () => {
         });
 
         if (response.data.status === 'success') {
+            await axios.delete(`/audit/sessions/${auditSession.value.id}/temporary`).catch(() => {});
             toast.success(`${response.data.data.onu_count} ${t('audit.toast.onuSaved')}`);
             closeAuditSession();
         }
@@ -313,6 +330,7 @@ const savePermanent = async () => {
 const closeAuditSession = () => {
     if (auditSession.value?.id) {
         axios.post(`/audit/sessions/${auditSession.value.id}/complete`).catch(() => {});
+        axios.delete(`/audit/sessions/${auditSession.value.id}/temporary`).catch(() => {});
     }
 
     auditSession.value = null;
@@ -399,6 +417,7 @@ const startAutoScan = () => {
                             recentlySavedOnus.value = newOnus;
                             showSavedBanner.value = true;
                             isBannerExpanded.value = false;
+                            persistTemporaryOnus(newOnus);
                             toast.success(`${newOnus.length} ${t('audit.toast.onuAdded')}`);
                         }
 
@@ -412,6 +431,7 @@ const startAutoScan = () => {
                             recentlySavedOnus.value = newOnus;
                             showSavedBanner.value = true;
                             isBannerExpanded.value = false;
+                            persistTemporaryOnus(newOnus);
                             toast.success(`${newOnus.length} ${t('audit.toast.newOnuDetected')}`);
                         }
                     }
