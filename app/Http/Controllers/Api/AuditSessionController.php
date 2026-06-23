@@ -14,6 +14,12 @@ use Illuminate\Support\Facades\Auth;
 
 class AuditSessionController extends Controller
 {
+    /**
+     * List all audit sessions for the authenticated user.
+     *
+     * Paginated list of sessions with their associated OLT.
+     * Supports `?per_page=` to control page size.
+     */
     public function index(Request $request): JsonResponse
     {
         $sessions = AuditSession::with('olt')
@@ -32,6 +38,13 @@ class AuditSessionController extends Controller
         ]);
     }
 
+    /**
+     * Create a new audit session.
+     *
+     * Links an OLT to a named session for tracking ONU audits.
+     * The session name auto-generates as AUDIT-YYYYMMDD-XXX
+     * if not provided. Starts in "active" status.
+     */
     public function store(StoreAuditSessionRequest $request): JsonResponse
     {
         $name = $request->name ?? $this->generateSessionName();
@@ -52,6 +65,13 @@ class AuditSessionController extends Controller
         ], 201);
     }
 
+    /**
+     * Get audit session details with ONUs.
+     *
+     * Returns the session along with its permanently saved
+     * ONUs, temporary saved ONUs, and associated OLT.
+     * Only the session owner can view it.
+     */
     public function show(AuditSession $session): JsonResponse
     {
         if ($session->user_id !== Auth::id()) {
@@ -66,6 +86,12 @@ class AuditSessionController extends Controller
         ]);
     }
 
+    /**
+     * Delete an audit session.
+     *
+     * Permanently removes the session and all associated
+     * ONU records. Only the session owner can delete it.
+     */
     public function destroy(AuditSession $session): JsonResponse
     {
         if ($session->user_id !== Auth::id()) {
@@ -77,6 +103,13 @@ class AuditSessionController extends Controller
         return response()->json(null, 204);
     }
 
+    /**
+     * Get the currently active audit session.
+     *
+     * Returns the most recently created session with
+     * "active" status for the authenticated user.
+     * Returns null data if no active session exists.
+     */
     public function active(): JsonResponse
     {
         $session = AuditSession::with(['olt', 'onus', 'savedOnus'])
@@ -91,6 +124,13 @@ class AuditSessionController extends Controller
         ]);
     }
 
+    /**
+     * Save ONUs permanently to an audit session.
+     *
+     * Persists scanned ONU data to the session's onus table.
+     * Session must be owned by the authenticated user and
+     * must have "active" status.
+     */
     public function saveOnus(SaveOnusRequest $request, AuditSession $session): JsonResponse
     {
         if ($session->user_id !== Auth::id()) {
@@ -128,6 +168,13 @@ class AuditSessionController extends Controller
         ]);
     }
 
+    /**
+     * Mark an audit session as completed.
+     *
+     * Sets the session status to "completed" and records
+     * the completion timestamp. Only the session owner
+     * can complete it.
+     */
     public function complete(AuditSession $session): JsonResponse
     {
         if ($session->user_id !== Auth::id()) {
@@ -145,6 +192,13 @@ class AuditSessionController extends Controller
         ]);
     }
 
+    /**
+     * Save ONUs temporarily to an audit session.
+     *
+     * Stores ONU data in the saved_onus table (survives
+     * page refresh). Only inserts ONUs whose SN does not
+     * already exist. Returns count of added and total records.
+     */
     public function saveTemporary(Request $request, AuditSession $session): JsonResponse
     {
         if ($session->user_id !== Auth::id()) {
@@ -198,6 +252,12 @@ class AuditSessionController extends Controller
         ]);
     }
 
+    /**
+     * Load temporarily saved ONUs.
+     *
+     * Returns all ONUs currently stored in the session's
+     * temporary storage (saved_onus table).
+     */
     public function loadTemporary(AuditSession $session): JsonResponse
     {
         if ($session->user_id !== Auth::id()) {
@@ -212,6 +272,12 @@ class AuditSessionController extends Controller
         ]);
     }
 
+    /**
+     * Remove a single temporary ONU by serial number.
+     *
+     * Deletes one ONU from the session's temporary storage
+     * identified by its SN. Returns the remaining count.
+     */
     public function removeOnu(Request $request, AuditSession $session, string $sn): JsonResponse
     {
         if ($session->user_id !== Auth::id()) {
@@ -228,6 +294,12 @@ class AuditSessionController extends Controller
         ]);
     }
 
+    /**
+     * Clear all temporary ONU data.
+     *
+     * Removes every ONU from the session's temporary
+     * storage in a single operation.
+     */
     public function clearTemporary(AuditSession $session): JsonResponse
     {
         if ($session->user_id !== Auth::id()) {

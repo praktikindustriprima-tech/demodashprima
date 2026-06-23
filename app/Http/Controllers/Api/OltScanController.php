@@ -16,6 +16,13 @@ class OltScanController extends Controller
         protected OltService $oltService
     ) {}
 
+    /**
+     * Scan an OLT for unconfigured ONUs.
+     *
+     * Connects via Telnet, runs `show pon onu u`, and parses
+     * the output into structured ONU data including olt_index,
+     * model, serial number, and password.
+     */
     public function scan(Olt $olt): JsonResponse
     {
         try {
@@ -41,6 +48,14 @@ class OltScanController extends Controller
         }
     }
 
+    /**
+     * Execute an arbitrary command on an OLT.
+     *
+     * Sends a command via Telnet and returns the raw output.
+     * Command safety restrictions apply: max 500 chars, blocks
+     * shell metacharacters (;, &&, ||, |, backticks, $()) and
+     * destructive commands (rm, del, format).
+     */
     public function runCommand(Request $request): JsonResponse
     {
         $request->validate([
@@ -76,6 +91,13 @@ class OltScanController extends Controller
         }
     }
 
+    /**
+     * Get detailed information about a specific ONU.
+     *
+     * Runs `show gpon onu detail-info` for the given olt_index
+     * and returns parsed data including state, signal levels,
+     * firmware version, and configuration profiles.
+     */
     public function onuInfo(Request $request): JsonResponse
     {
         $request->validate([
@@ -106,6 +128,13 @@ class OltScanController extends Controller
         }
     }
 
+    /**
+     * Get the OLT welcome banner.
+     *
+     * Captures the initial banner text displayed by the OLT
+     * before the login prompt, useful for verifying connectivity
+     * and device identity.
+     */
     public function banner(Olt $olt): JsonResponse
     {
         try {
@@ -123,6 +152,14 @@ class OltScanController extends Controller
         }
     }
 
+    /**
+     * Quick scan an OLT using inline credentials.
+     *
+     * Accepts connection details directly without requiring a
+     * pre-existing OLT record. If an OLT with the same host
+     * already exists, it reuses it. Otherwise, a new OLT record
+     * named "Quick Scan ({host})" is created automatically.
+     */
     public function quickScan(Request $request): JsonResponse
     {
         $request->validate([

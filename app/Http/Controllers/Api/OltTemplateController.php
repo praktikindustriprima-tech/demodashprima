@@ -11,6 +11,12 @@ use Illuminate\Http\JsonResponse;
 
 class OltTemplateController extends Controller
 {
+    /**
+     * List all OLT connection templates.
+     *
+     * Returns credential presets. Passwords are not included
+     * in the response (stored in plaintext).
+     */
     public function index(): JsonResponse
     {
         return response()->json([
@@ -19,6 +25,13 @@ class OltTemplateController extends Controller
         ]);
     }
 
+    /**
+     * Create a new OLT connection template.
+     *
+     * Stores a credential preset for quick-scan flows.
+     * Unlike OLT records, template passwords are stored
+     * in plaintext.
+     */
     public function store(StoreOltTemplateRequest $request): JsonResponse
     {
         $template = OltTemplate::create($request->validated());
@@ -29,6 +42,9 @@ class OltTemplateController extends Controller
         ], 201);
     }
 
+    /**
+     * Get a single template details.
+     */
     public function show(OltTemplate $template): JsonResponse
     {
         return response()->json([
@@ -37,6 +53,12 @@ class OltTemplateController extends Controller
         ]);
     }
 
+    /**
+     * Update an OLT connection template.
+     *
+     * All fields are optional. Empty password preserves
+     * the existing value.
+     */
     public function update(UpdateOltTemplateRequest $request, OltTemplate $template): JsonResponse
     {
         $data = $request->validated();
@@ -53,6 +75,9 @@ class OltTemplateController extends Controller
         ]);
     }
 
+    /**
+     * Delete an OLT connection template.
+     */
     public function destroy(OltTemplate $template): JsonResponse
     {
         $template->delete();
@@ -60,6 +85,13 @@ class OltTemplateController extends Controller
         return response()->json(null, 204);
     }
 
+    /**
+     * Toggle a template as the default.
+     *
+     * If the template is already the default, removes its
+     * default status. Otherwise, clears all templates'
+     * is_default flags and sets this one.
+     */
     public function setDefault(OltTemplate $template): JsonResponse
     {
         if ($template->is_default) {

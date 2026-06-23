@@ -10,6 +10,13 @@ use Illuminate\Support\Facades\Auth;
 
 class OltPreferenceController extends Controller
 {
+    /**
+     * Get all user preferences.
+     *
+     * Returns a key-value map of all preferences for the
+     * authenticated user. Values stored as JSON are
+     * automatically decoded in the response.
+     */
     public function index(): JsonResponse
     {
         $prefs = OltPreference::where('user_id', Auth::id())->get();
@@ -25,6 +32,14 @@ class OltPreferenceController extends Controller
         ]);
     }
 
+    /**
+     * Update user preferences.
+     *
+     * Accepts a single key-value pair or a batch of
+     * preferences. For batch updates, pass an object
+     * of key-value pairs in the `batch` field.
+     * Missing keys are not affected.
+     */
     public function update(Request $request): JsonResponse
     {
         $payload = $request->validate([

@@ -12,6 +12,12 @@ use Illuminate\Http\Request;
 
 class OltController extends Controller
 {
+    /**
+     * List all OLT devices.
+     *
+     * Returns every OLT record. Passwords are always excluded
+     * from the response (encrypted at rest).
+     */
     public function index(): JsonResponse
     {
         $olts = Olt::all();
@@ -22,6 +28,12 @@ class OltController extends Controller
         ]);
     }
 
+    /**
+     * Create a new OLT device record.
+     *
+     * Stores connection credentials. The password is automatically
+     * encrypted using Crypt::encryptString() before persisting.
+     */
     public function store(StoreOltRequest $request): JsonResponse
     {
         $olt = Olt::create($request->validated());
@@ -32,6 +44,11 @@ class OltController extends Controller
         ], 201);
     }
 
+    /**
+     * Get a single OLT device details.
+     *
+     * Returns the OLT record identified by the given ID.
+     */
     public function show(Olt $olt): JsonResponse
     {
         return response()->json([
@@ -40,6 +57,12 @@ class OltController extends Controller
         ]);
     }
 
+    /**
+     * Update an OLT device record.
+     *
+     * All fields are optional. If password is empty or null,
+     * the existing encrypted password is preserved.
+     */
     public function update(UpdateOltRequest $request, Olt $olt): JsonResponse
     {
         $data = $request->validated();
@@ -56,6 +79,12 @@ class OltController extends Controller
         ]);
     }
 
+    /**
+     * Delete an OLT device record.
+     *
+     * Permanently removes the OLT and all associated ONUs,
+     * history entries, and audit sessions.
+     */
     public function destroy(Olt $olt): JsonResponse
     {
         $olt->delete();

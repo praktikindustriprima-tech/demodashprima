@@ -10,6 +10,14 @@ use Illuminate\Http\Request;
 
 class OltHistoryController extends Controller
 {
+    /**
+     * List action history.
+     *
+     * Paginated list of all OLT command executions.
+     * Supports `?filter=daily` for today's records or
+     * `?filter=monthly` for this month. Defaults to all.
+     * Use `?per_page=` to control page size.
+     */
     public function index(Request $request): JsonResponse
     {
         $query = OltHistory::with(['user', 'olt']);
@@ -34,6 +42,13 @@ class OltHistoryController extends Controller
         ]);
     }
 
+    /**
+     * Clear action history records.
+     *
+     * Deletes history entries filtered by `?filter=daily`
+     * or `?filter=monthly`. Without a filter, all records
+     * are deleted. Returns the count of removed records.
+     */
     public function clear(Request $request): JsonResponse
     {
         $query = OltHistory::query();
@@ -53,6 +68,13 @@ class OltHistoryController extends Controller
         ]);
     }
 
+    /**
+     * Export action history as CSV.
+     *
+     * Streams a CSV file with columns: Date, User, OLT,
+     * Action, Target SN, Command, Status. Supports
+     * `?filter=daily` or `?filter=monthly`.
+     */
     public function export(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $query = OltHistory::with(['user', 'olt']);

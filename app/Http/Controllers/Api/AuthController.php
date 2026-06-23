@@ -11,6 +11,13 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    /**
+     * Authenticate a user and issue a Sanctum token.
+     *
+     * Validates email and password credentials. On success returns a
+     * Bearer token and the authenticated user's basic profile.
+     * On failure returns a 422 validation error.
+     */
     public function login(Request $request): JsonResponse
     {
         $request->validate([
@@ -42,6 +49,12 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Revoke the current API token.
+     *
+     * Invalidates the Bearer token used in the request. Subsequent
+     * requests with the same token will be rejected.
+     */
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
@@ -52,6 +65,12 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Get the authenticated user's profile.
+     *
+     * Returns basic user information (id, name, email) for the
+     * currently authenticated user.
+     */
     public function user(Request $request): JsonResponse
     {
         return response()->json([
