@@ -57,18 +57,341 @@ Uses **Laravel Sanctum** token-based auth.
 
 #### `POST /api/v1/auth/login`
 
-```json
-// Request
-{ "email": "required|email", "password": "required|string" }
+```bash
+curl -X POST http://yourapp.test/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@example.com", "password": "password"}'
+```
 
+```json
 // Response 200
-{ "status": "success", "data": { "token": "1|abc...", "user": { "id": 1, "name": "...", "email": "..." } } }
+{
+  "status": "success",
+  "data": {
+    "token": "1|abc123def456...",
+    "user": { "id": 1, "name": "Admin", "email": "admin@example.com" }
+  }
+}
 
 // Response 422
 { "message": "The provided credentials are incorrect.", "errors": { "email": ["..."] } }
 ```
 
-### OLTs
+#### `POST /api/v1/auth/logout`
+
+```bash
+curl -X POST http://yourapp.test/api/v1/auth/logout \
+  -H "Authorization: Bearer 1|abc123def456..."
+```
+
+```json
+{ "status": "success", "message": "Logged out successfully." }
+```
+
+#### `GET /api/v1/auth/user`
+
+```bash
+curl http://yourapp.test/api/v1/auth/user \
+  -H "Authorization: Bearer 1|abc123def456..."
+```
+
+```json
+{
+  "status": "success",
+  "data": { "id": 1, "name": "Admin", "email": "admin@example.com" }
+}
+```
+
+---
+
+### Full Flow: Audit Session
+
+The typical end-to-end workflow.
+
+#### 1. Create an OLT
+
+```bash
+curl -X POST http://yourapp.test/api/v1/olts \
+  -H "Authorization: Bearer 1|abc123def456..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Main Office OLT",
+    "host": "192.168.1.100",
+    "port": 23,
+    "username": "zteadmin",
+    "password": "ztepass123",
+    "olt_type": "ZTE C300"
+  }'
+```
+
+```json
+// Response 201
+{
+  "status": "success",
+  "data": {
+    "id": 1,
+    "name": "Main Office OLT",
+    "host": "192.168.1.100",
+    "port": 23,
+    "olt_type": "ZTE C300",
+    "created_at": "2026-06-23T10:00:00Z",
+    "updated_at": "2026-06-23T10:00:00Z"
+  }
+}
+```
+
+Password is excluded from responses (encrypted at rest via `Crypt::encryptString()`).
+
+#### 2. Create an Audit Session
+
+```bash
+curl -X POST http://yourapp.test/api/v1/audit-sessions \
+  -H "Authorization: Bearer 1|abc123def456..." \
+  -H "Content-Type: application/json" \
+  -d '{"olt_id": 1}'
+```
+
+```json
+// Response 201
+{
+  "status": "success",
+  "data": {
+    "id": 1,
+    "olt_id": 1,
+    "olt": { "id": 1, "name": "Main Office OLT", "host": "192.168.1.100" },
+    "name": "AUDIT-20260623-001",
+    "status": "active",
+    "onu_count": 0,
+    "started_at": "2026-06-23T10:01:00Z",
+    "completed_at": null,
+    "onus": [],
+    "saved_onus": []
+  }
+}
+```
+
+Name auto-generates as `AUDIT-YYYYMMDD-XXX` if omitted. Pass a custom `name` field to override.
+
+#### 3. Scan OLT for Unconfigured ONUs
+
+```bash
+curl -X POST http://yourapp.test/api/v1/olts/1/scan \
+  -H "Authorization: Bearer 1|abc123def456..."
+```
+
+```json
+// Response 200
+{
+  "status": "success",
+  "data": [
+    {
+      "olt_index": "gpon-olt_1/3/14",
+      "model": "F670LV9.0",
+      "sn": "ZTEGD0253352",
+      "pw": "GD0253352"
+    },
+    {
+      "olt_index": "gpon-olt_1/3/15",
+      "model": "F601H",
+      "sn": "ZTEGC1234567",
+      "pw": "GC1234567"
+    }
+  ],
+  "meta": {
+    "olt_id": 1,
+    "olt_name": "Main Office OLT",
+    "raw": "show pon onu u\n  gpon-olt_1/3/14 F670LV9.0 ZTEGD0253352 GD0253352\n  gpon-olt_1/3/15 F601H    ZTEGC1234567  GC1234567\n"
+  }
+}
+
+// Response 500 (connection failure)
+{ "status": "error", "message": "Failed to connect to OLT: Connection timed out" }
+```
+
+#### 4. Save ONUs to Session (permanent)
+
+```bash
+curl -X POST http://yourapp.test/api/v1/audit-sessions/1/onus \
+  -H "Authorization: Bearer 1|abc123def456..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "onus": [
+      {
+        "olt_index": "gpon-olt_1/3/14",
+        "onu_index": "gpon-onu_1/3/14:1",
+        "sn": "ZTEGD0253352",
+        "model": "F670LV9.0",
+        "pw": "GD0253352"
+      },
+      {
+        "olt_index": "gpon-olt_1/3/15",
+        "onu_index": "gpon-onu_1/3/15:1",
+        "sn": "ZTEGC1234567",
+        "model": "F601H",
+        "pw": "GC1234567"
+      }
+    ]
+  }'
+```
+
+```json
+// Response 200
+{
+  "status": "success",
+  "data": {
+    "id": 1,
+    "olt_id": 1,
+    "name": "AUDIT-20260623-001",
+    "status": "active",
+    "onu_count": 2,
+    "onus": [
+      {
+        "id": 1,
+        "olt_index": "gpon-olt_1/3/14",
+        "onu_index": "gpon-onu_1/3/14:1",
+        "sn": "ZTEGD0253352",
+        "model": "F670LV9.0",
+        "pw": "GD0253352",
+        "scanned_at": "2026-06-23T10:02:00Z"
+      },
+      {
+        "id": 2,
+        "olt_index": "gpon-olt_1/3/15",
+        "onu_index": "gpon-onu_1/3/15:1",
+        "sn": "ZTEGC1234567",
+        "model": "F601H",
+        "pw": "GC1234567",
+        "scanned_at": "2026-06-23T10:02:00Z"
+      }
+    ]
+  }
+}
+```
+
+Session must be owned by the authenticated user and must have `status: "active"`.
+
+#### 5. Complete Session
+
+```bash
+curl -X POST http://yourapp.test/api/v1/audit-sessions/1/complete \
+  -H "Authorization: Bearer 1|abc123def456..."
+```
+
+```json
+// Response 200
+{
+  "status": "success",
+  "data": {
+    "id": 1,
+    "name": "AUDIT-20260623-001",
+    "status": "completed",
+    "completed_at": "2026-06-23T10:05:00Z",
+    "onu_count": 2
+  }
+}
+```
+
+---
+
+### OLT Commands
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/v1/olts/{olt}/banner` | Yes | Get OLT welcome banner |
+| POST | `/api/v1/run-command` | Yes | Execute arbitrary command |
+| POST | `/api/v1/onu-info` | Yes | Get detailed ONU info |
+| POST | `/api/v1/quick-scan` | Yes | Quick scan with inline creds |
+
+#### `POST /api/v1/run-command`
+
+```bash
+curl -X POST http://yourapp.test/api/v1/run-command \
+  -H "Authorization: Bearer 1|abc123def456..." \
+  -H "Content-Type: application/json" \
+  -d '{"olt_id": 1, "command": "show version", "action": "Check firmware"}'
+```
+
+```json
+{
+  "status": "success",
+  "data": { "output": "ZXA10 C300\nV5.0.0P1T1\n..." }
+}
+
+// Error 400 — invalid command
+{ "status": "error", "message": "Invalid command." }
+```
+
+Command safety: max 500 chars, blocks `;`, `&&`, `||`, `|`, `` ` ``, `$(`, `rm `, `del `, `format `.
+
+#### `POST /api/v1/onu-info`
+
+```bash
+curl -X POST http://yourapp.test/api/v1/onu-info \
+  -H "Authorization: Bearer 1|abc123def456..." \
+  -H "Content-Type: application/json" \
+  -d '{"olt_id": 1, "olt_index": "gpon-olt_1/3/14"}'
+```
+
+```json
+// Response 200
+{
+  "status": "success",
+  "data": {
+    "onu_type": "F670L",
+    "onu_sn": "ZTEGD0253352",
+    "password": "GD0253352",
+    "state": "online",
+    "rx_power": "-18.5 dBm",
+    "tx_power": "1.2 dBm",
+    "distance": "2.5 km",
+    "vendor_id": "ZTEG",
+    "equipment_id": "...",
+    "firmware_version": "V5.0.0P1T1",
+    "serial_number": "...",
+    "description": "...",
+    "admin_state": "enable",
+    "oper_state": "online",
+    "last_down_cause": "lost signal",
+    "channel_count": "8",
+    "bind_number": "",
+    "line_profile": "1",
+    "service_profile": "1"
+  },
+  "meta": { "raw": "telnet output..." }
+}
+```
+
+#### `POST /api/v1/quick-scan`
+
+Injects credentials directly (no pre-existing OLT needed). Reuses or creates an OLT record keyed by `host`.
+
+```bash
+curl -X POST http://yourapp.test/api/v1/quick-scan \
+  -H "Authorization: Bearer 1|abc123def456..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "host": "192.168.1.100",
+    "port": 23,
+    "username": "zteadmin",
+    "password": "ztepass123",
+    "olt_type": "ZTE C300"
+  }'
+```
+
+```json
+// Response: same structure as /olts/{olt}/scan
+{
+  "status": "success",
+  "data": [
+    { "olt_index": "gpon-olt_1/3/14", "model": "F670LV9.0", "sn": "ZTEGD0253352", "pw": "GD0253352" }
+  ],
+  "meta": { "olt_id": 1, "olt_name": "Quick Scan (192.168.1.100)", "raw": "..." }
+}
+```
+
+---
+
+### OLT CRUD
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -78,98 +401,45 @@ Uses **Laravel Sanctum** token-based auth.
 | PUT | `/api/v1/olts/{id}` | Yes | Update |
 | DELETE | `/api/v1/olts/{id}` | Yes | Delete |
 
-#### `POST /api/v1/olts`
+#### `GET /api/v1/olts`
 
-```json
-// Request
-{
-    "name": "required|string|max:255",
-    "host": "required|string|max:255",
-    "port": "required|integer",
-    "username": "required|string|max:255",
-    "password": "required|string",
-    "olt_type": "required|string|max:50"
-}
-
-// Response 201
-{ "status": "success", "data": { "id": 1, "name": "...", "host": "...", "port": 23, "olt_type": "ZTE C300", "created_at": "...", "updated_at": "..." } }
+```bash
+curl http://yourapp.test/api/v1/olts \
+  -H "Authorization: Bearer 1|abc123def456..."
 ```
 
-Password excluded from responses (encrypted at rest via `Crypt::encryptString()`).
+```json
+{
+  "status": "success",
+  "data": [
+    { "id": 1, "name": "Main Office OLT", "host": "192.168.1.100", "port": 23, "olt_type": "ZTE C300", "created_at": "...", "updated_at": "..." }
+  ]
+}
+```
 
 #### `PUT /api/v1/olts/{id}`
 
-Same fields, all `sometimes`. Empty `password` skips update.
-
-### OLT Commands
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/api/v1/olts/{olt}/scan` | Yes | Scan for unconfigured ONUs |
-| POST | `/api/v1/olts/{olt}/banner` | Yes | Get OLT welcome banner |
-| POST | `/api/v1/run-command` | Yes | Execute arbitrary command |
-| POST | `/api/v1/onu-info` | Yes | Get detailed ONU info |
-| POST | `/api/v1/quick-scan` | Yes | Quick scan with inline creds |
-
-#### `POST /api/v1/olts/{olt}/scan`
-
-```json
-// Response 200
-{
-    "status": "success",
-    "data": [
-        { "olt_index": "gpon-olt_1/3/14", "model": "F670LV9.0", "sn": "ZTEGD0253352", "pw": "GD0253352" }
-    ],
-    "meta": { "olt_id": 1, "olt_name": "...", "raw": "telnet output..." }
-}
-
-// Response 500
-{ "status": "error", "message": "Failed to connect to OLT: ..." }
+```bash
+curl -X PUT http://yourapp.test/api/v1/olts/1 \
+  -H "Authorization: Bearer 1|abc123def456..." \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Updated OLT", "host": "10.0.0.1"}'
 ```
 
-#### `POST /api/v1/run-command`
+All fields optional (`sometimes`). Empty `password` skips password update.
 
-```json
-// Request
-{
-    "olt_id": "required|exists:olts,id",
-    "command": "required|string|max:500",
-    "action": "nullable|string|max:255"
-}
+#### `DELETE /api/v1/olts/{id}`
+
+```bash
+curl -X DELETE http://yourapp.test/api/v1/olts/1 \
+  -H "Authorization: Bearer 1|abc123def456..."
 ```
 
-Command safety: blocks `;`, `&&`, `||`, `|`, `` ` ``, `$(`, `rm `, `del `, `format `.
-
-#### `POST /api/v1/onu-info`
-
 ```json
-// Request
-{ "olt_id": "required|exists:olts,id", "olt_index": "required|string" }
-
-// Response 200
-{
-    "status": "success",
-    "data": {
-        "onu_type": "F670L", "onu_sn": "ZTEGD0253352", "password": "GD0253352",
-        "state": "online", "rx_power": "-18.5 dBm", "tx_power": "1.2 dBm",
-        "distance": "2.5 km", "vendor_id": "ZTEG", "firmware_version": "V5.0.0P1T1",
-        "admin_state": "enable", "oper_state": "online",
-        "line_profile": "1", "service_profile": "1"
-    },
-    "meta": { "raw": "telnet output..." }
-}
+// Response 204 — No Content
 ```
 
-#### `POST /api/v1/quick-scan`
-
-Injects credentials directly (no pre-existing OLT needed). Reuses or creates an OLT record keyed by `host`.
-
-```json
-// Request
-{ "host": "required|string", "port": "nullable|integer", "username": "required|string", "password": "required|string", "olt_type": "nullable|string|max:50" }
-
-// Response: same structure as /scan
-```
+---
 
 ### Templates
 
@@ -184,12 +454,30 @@ Injects credentials directly (no pre-existing OLT needed). Reuses or creates an 
 
 Templates are credential presets stored in plaintext (no encryption on `olt_templates` table).
 
-```json
-// POST /api/v1/templates
-{ "name": "required|string|max:255", "host": "required|string|max:255", "port": "required|integer", "username": "required|string|max:255", "password": "required|string" }
+```bash
+curl -X POST http://yourapp.test/api/v1/templates \
+  -H "Authorization: Bearer 1|abc123def456..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Office Template",
+    "host": "192.168.1.100",
+    "port": 23,
+    "username": "admin",
+    "password": "secret"
+  }'
 ```
 
-### Audit Sessions
+```json
+// Response 201
+{
+  "status": "success",
+  "data": { "id": 1, "name": "Office Template", "host": "192.168.1.100", "port": 23, "is_default": false, "created_at": "...", "updated_at": "..." }
+}
+```
+
+---
+
+### Audit Sessions Reference
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -197,7 +485,7 @@ Templates are credential presets stored in plaintext (no encryption on `olt_temp
 | POST | `/api/v1/audit-sessions` | Yes | Create |
 | GET | `/api/v1/audit-sessions/active` | Yes | Current active session |
 | GET | `/api/v1/audit-sessions/{session}` | Yes | Detail with ONUs |
-| DELETE | `/api/v1/audit-sessions/{session}` | Yes | Delete |
+| DELETE | `/api/v1/audit-sessions/{session}` | Yes | Delete (204) |
 | POST | `/api/v1/audit-sessions/{session}/onus` | Yes | Save ONUs permanently |
 | POST | `/api/v1/audit-sessions/{session}/complete` | Yes | Mark completed |
 | POST | `/api/v1/audit-sessions/{session}/temporary` | Yes | Save ONUs temporarily |
@@ -205,33 +493,70 @@ Templates are credential presets stored in plaintext (no encryption on `olt_temp
 | DELETE | `/api/v1/audit-sessions/{session}/temporary` | Yes | Clear temp ONUs |
 | DELETE | `/api/v1/audit-sessions/{session}/temporary/{sn}` | Yes | Remove one temp ONU by SN |
 
-#### `POST /api/v1/audit-sessions`
+#### Saving ONUs temporarily (in-progress)
 
-```json
-// Request
-{ "olt_id": "required|exists:olts,id", "name": "nullable|string|max:255" }
-
-// name auto-generated as AUDIT-YYYYMMDD-XXX if omitted
-
-// Response 201
-{ "status": "success", "data": { "id": 1, "olt_id": 1, "olt": {...}, "name": "AUDIT-20260623-001", "status": "active", "onu_count": 0, "started_at": "...", "completed_at": null, "onus": [], "saved_onus": [] } }
+```bash
+curl -X POST http://yourapp.test/api/v1/audit-sessions/1/temporary \
+  -H "Authorization: Bearer 1|abc123def456..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "onus": [
+      {
+        "olt_index": "gpon-olt_1/3/14",
+        "sn": "ZTEGD0253352",
+        "model": "F670LV9.0",
+        "pw": "GD0253352"
+      }
+    ]
+  }'
 ```
 
-#### `POST /api/v1/audit-sessions/{session}/onus`
+```json
+// Response 200
+{ "status": "success", "data": { "added": 1, "total": 1 } }
+```
+
+Only inserts ONUs whose SN doesn't already exist in temporary storage.
+
+#### Viewing temporary ONUs
+
+```bash
+curl http://yourapp.test/api/v1/audit-sessions/1/temporary \
+  -H "Authorization: Bearer 1|abc123def456..."
+```
 
 ```json
-// Request
 {
-    "onus": "required|array|min:1",
-    "onus.*.olt_index": "required|string",
-    "onus.*.onu_index": "nullable|string",
-    "onus.*.sn": "required|string",
-    "onus.*.model": "required|string",
-    "onus.*.pw": "required|string"
+  "status": "success",
+  "data": [
+    { "id": 1, "olt_index": "gpon-olt_1/3/14", "sn": "ZTEGD0253352", "model": "F670LV9.0", "pw": "GD0253352", "scanned_at": "..." }
+  ]
 }
 ```
 
-Session must be owned by the authenticated user and must be `active`.
+#### Removing a single temporary ONU
+
+```bash
+curl -X DELETE http://yourapp.test/api/v1/audit-sessions/1/temporary/ZTEGD0253352 \
+  -H "Authorization: Bearer 1|abc123def456..."
+```
+
+```json
+{ "status": "success", "data": { "total": 0 } }
+```
+
+#### Clearing all temporary ONUs
+
+```bash
+curl -X DELETE http://yourapp.test/api/v1/audit-sessions/1/temporary \
+  -H "Authorization: Bearer 1|abc123def456..."
+```
+
+```json
+{ "status": "success", "message": "Temporary data cleared." }
+```
+
+---
 
 ### Preferences
 
@@ -240,18 +565,49 @@ Session must be owned by the authenticated user and must be `active`.
 | GET | `/api/v1/preferences` | Yes | All user preferences (key-value map) |
 | PUT | `/api/v1/preferences` | Yes | Update single or batch |
 
-```json
-// GET response
-{ "status": "success", "data": { "theme": "dark", "poll_interval": "30", "excluded_sns": [...] } }
-
-// PUT single
-{ "key": "required|string|max:255", "value": "nullable" }
-
-// PUT batch
-{ "batch": { "theme": "dark", "poll_interval": "30" } }
+```bash
+curl http://yourapp.test/api/v1/preferences \
+  -H "Authorization: Bearer 1|abc123def456..."
 ```
 
-Values are stored as JSON text; auto-decoded in responses.
+```json
+{
+  "status": "success",
+  "data": {
+    "theme": "dark",
+    "poll_interval": "30",
+    "excluded_sns": [
+      { "sn": "ZTEGD0253352", "notes": "Customer complaint" }
+    ]
+  }
+}
+```
+
+Values stored as JSON text; auto-decoded in responses.
+
+#### Update single
+
+```bash
+curl -X PUT http://yourapp.test/api/v1/preferences \
+  -H "Authorization: Bearer 1|abc123def456..." \
+  -H "Content-Type: application/json" \
+  -d '{"key": "theme", "value": "light"}'
+```
+
+#### Update batch
+
+```bash
+curl -X PUT http://yourapp.test/api/v1/preferences \
+  -H "Authorization: Bearer 1|abc123def456..." \
+  -H "Content-Type: application/json" \
+  -d '{"batch": { "theme": "dark", "poll_interval": "60" }}'
+```
+
+```json
+{ "status": "success" }
+```
+
+---
 
 ### Action History
 
@@ -261,18 +617,49 @@ Values are stored as JSON text; auto-decoded in responses.
 | GET | `/api/v1/history/actions/export` | Yes | CSV download |
 | DELETE | `/api/v1/history/actions` | Yes | Clear (filterable) |
 
+```bash
+curl "http://yourapp.test/api/v1/history/actions?filter=daily&per_page=20" \
+  -H "Authorization: Bearer 1|abc123def456..."
+```
+
 ```json
-// GET response
 {
-    "status": "success",
-    "data": [
-        { "id": 1, "olt_id": 1, "olt_name": "DC OLT", "action": "Scan", "target_sn": null, "command_sent": "show pon onu u", "status": "success", "created_at": "..." }
-    ],
-    "meta": { "current_page": 1, "last_page": 1, "total": 10 }
+  "status": "success",
+  "data": [
+    {
+      "id": 1,
+      "olt_id": 1,
+      "olt_name": "Main Office OLT",
+      "action": "Scan",
+      "target_sn": null,
+      "command_sent": "show pon onu u",
+      "status": "success",
+      "created_at": "2026-06-23T10:02:00Z"
+    }
+  ],
+  "meta": { "current_page": 1, "last_page": 1, "total": 1 }
 }
 ```
 
-CSV export returns columns: `Date, User, OLT, Action, Target SN, Command, Status`.
+#### CSV export
+
+```bash
+curl "http://yourapp.test/api/v1/history/actions/export?filter=monthly" \
+  -H "Authorization: Bearer 1|abc123def456..."
+```
+
+Returns streamed CSV with columns: `Date, User, OLT, Action, Target SN, Command, Status`.
+
+#### Clear history
+
+```bash
+curl -X DELETE "http://yourapp.test/api/v1/history/actions?filter=daily" \
+  -H "Authorization: Bearer 1|abc123def456..."
+```
+
+```json
+{ "status": "success", "message": "Cleared 5 history record(s)." }
+```
 
 ---
 
