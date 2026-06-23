@@ -93,7 +93,7 @@ class OltCommand
         $commandIndex = str_replace('gpon-olt_', 'gpon-onu_', $oltIndex);
 
         // Append :1 if not already present
-        if (!str_contains($commandIndex, ':')) {
+        if (! str_contains($commandIndex, ':')) {
             $commandIndex .= ':1';
         }
 

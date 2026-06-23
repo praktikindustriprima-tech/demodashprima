@@ -34,7 +34,7 @@ class OltService
      */
     public function executeExec(Olt $olt, string $command, string $action, ?string $targetSn = null): string
     {
-        if (!$this->client) {
+        if (! $this->client) {
             $this->connect($olt);
         }
 

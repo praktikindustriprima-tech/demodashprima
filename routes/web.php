@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuditSessionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OltController;
+use App\Http\Controllers\OltPreferenceController;
 use App\Http\Controllers\OltTemplateController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,10 +46,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('audit/sessions/{session}/complete', [AuditSessionController::class, 'complete'])->name('audit.sessions.complete');
     Route::delete('audit/sessions/{session}', [AuditSessionController::class, 'destroy'])->name('audit.sessions.destroy');
 
-    // Excluded ONUs
-    Route::get('audit/excluded-onus', [\App\Http\Controllers\ExcludedOnuController::class, 'index'])->name('audit.excluded-onus.index');
-    Route::post('audit/excluded-onus', [\App\Http\Controllers\ExcludedOnuController::class, 'store'])->name('audit.excluded-onus.store');
-    Route::delete('audit/excluded-onus/{excludedOnu}', [\App\Http\Controllers\ExcludedOnuController::class, 'destroy'])->name('audit.excluded-onus.destroy');
+    // OLT Preferences
+    Route::get('olt/preferences', [OltPreferenceController::class, 'index'])->name('olt.preferences.index');
+    Route::put('olt/preferences', [OltPreferenceController::class, 'update'])->name('olt.preferences.update');
 
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 });

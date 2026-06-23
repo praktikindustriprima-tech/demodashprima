@@ -32,7 +32,7 @@ class OltTemplateController extends Controller
             'password' => 'nullable|string',
         ]);
 
-        if (!empty($data['password'])) {
+        if (! empty($data['password'])) {
             $oltTemplate->update($data);
         } else {
             $oltTemplate->update(collect($data)->except('password')->toArray());
@@ -52,6 +52,7 @@ class OltTemplateController extends Controller
     {
         if ($oltTemplate->is_default) {
             $oltTemplate->update(['is_default' => false]);
+
             return redirect()->back()->with('success', 'Default template removed.');
         }
 

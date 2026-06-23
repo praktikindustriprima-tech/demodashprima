@@ -16,9 +16,7 @@ import {
     Pencil,
     X,
 } from '@lucide/vue';
-import { useLocalStorage } from '@vueuse/core';
-import { onMounted, ref } from 'vue';
-import axios from 'axios';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
@@ -39,6 +37,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useOltPreferences } from '@/composables/useOltPreferences';
 import AppLayout from '@/layouts/AppLayout.vue';
 
 const { t } = useI18n();
@@ -117,65 +116,39 @@ const setDefault = (id: number) => {
     });
 };
 
-const autoReconnect = useLocalStorage('olt-auto-reconnect', true);
-const autoScanInterval = useLocalStorage('olt-autoscan-interval', 5);
-const autoScanEnabledByDefault = useLocalStorage('olt-autoscan-default', true);
+const {
+    autoReconnect,
+    autoScanInterval,
+    autoScanDefault: autoScanEnabledByDefault,
+    excludedSns,
+    addExcludedSn: addPrefExcludedSn,
+    removeExcludedSn: removePrefExcludedSn,
+} = useOltPreferences();
 
 // --- Exclude ONUs ---
-const excludedOnus = ref<
-    Array<{ id: number; sn: string; notes: string | null }>
->([]);
 const excludeSnInput = ref('');
 const excludeNotesInput = ref('');
 const isAddingExclude = ref(false);
 
-const fetchExcludedOnus = async () => {
-    try {
-        const response = await axios.get('/audit/excluded-onus');
-        if (response.data.status === 'success') {
-            excludedOnus.value = response.data.data;
-        }
-    } catch {
-        /* silent */
-    }
-};
+const addExcludedSn = () => {
+    const sn = excludeSnInput.value.trim();
 
-const addExcludedSn = async () => {
-    if (!excludeSnInput.value.trim()) return;
+    if (!sn) {
+        return;
+    }
+
     isAddingExclude.value = true;
-    try {
-        const response = await axios.post('/audit/excluded-onus', {
-            sn: excludeSnInput.value.trim(),
-            notes: excludeNotesInput.value.trim() || null,
-        });
-        if (response.data.status === 'success') {
-            excludedOnus.value.unshift(response.data.data);
-            excludeSnInput.value = '';
-            excludeNotesInput.value = '';
-            toast.success(t('olt.settings.excludeOnus.added'));
-        }
-    } catch {
-        toast.error(t('olt.settings.excludeOnus.addFailed'));
-    } finally {
-        isAddingExclude.value = false;
-    }
+    addPrefExcludedSn(sn, excludeNotesInput.value.trim() || null);
+    excludeSnInput.value = '';
+    excludeNotesInput.value = '';
+    isAddingExclude.value = false;
+    toast.success(t('olt.settings.excludeOnus.added'));
 };
 
-const removeExcludedSn = async (id: number) => {
-    try {
-        const response = await axios.delete(`/audit/excluded-onus/${id}`);
-        if (response.data.status === 'success') {
-            excludedOnus.value = excludedOnus.value.filter((o) => o.id !== id);
-            toast.success(t('olt.settings.excludeOnus.removed'));
-        }
-    } catch {
-        toast.error(t('olt.settings.excludeOnus.removeFailed'));
-    }
+const removeExcludedSn = (sn: string) => {
+    removePrefExcludedSn(sn);
+    toast.success(t('olt.settings.excludeOnus.removed'));
 };
-
-onMounted(() => {
-    fetchExcludedOnus();
-});
 
 defineOptions({ layout: AppLayout });
 </script>
@@ -601,7 +574,7 @@ defineOptions({ layout: AppLayout });
 
                     <!-- List -->
                     <div
-                        v-if="excludedOnus.length === 0"
+                        v-if="excludedSns.length === 0"
                         class="flex h-24 flex-col items-center justify-center rounded-lg border border-dashed text-muted-foreground"
                     >
                         <ShieldCheck class="mb-2 h-8 w-8 opacity-20" />
@@ -611,8 +584,8 @@ defineOptions({ layout: AppLayout });
                     </div>
                     <div v-else class="space-y-2">
                         <div
-                            v-for="item in excludedOnus"
-                            :key="item.id"
+                            v-for="item in excludedSns"
+                            :key="item.sn"
                             class="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
                         >
                             <div class="flex-1">
@@ -629,7 +602,7 @@ defineOptions({ layout: AppLayout });
                                 variant="ghost"
                                 size="icon"
                                 class="h-7 w-7 text-red-500 hover:text-red-600"
-                                @click="removeExcludedSn(item.id)"
+                                @click="removeExcludedSn(item.sn)"
                             >
                                 <X class="h-4 w-4" />
                             </Button>

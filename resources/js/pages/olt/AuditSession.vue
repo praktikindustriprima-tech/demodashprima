@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { MonitorPlay, X, Clock, ClipboardCheck, ShieldOff, ChevronDown } from '@lucide/vue';
-import { useLocalStorage, useSessionStorage } from '@vueuse/core';
+import {
+    MonitorPlay,
+    X,
+    Clock,
+    ClipboardCheck,
+    ShieldOff,
+    ChevronDown,
+} from '@lucide/vue';
+import { useSessionStorage } from '@vueuse/core';
 import axios from 'axios';
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { toast } from 'vue-sonner';
 import Heading from '@/components/Heading.vue';
@@ -16,13 +23,31 @@ import OnuTable from '@/components/olt/OnuTable.vue';
 import SavedOnusModal from '@/components/olt/SavedOnusModal.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { useOltPreferences } from '@/composables/useOltPreferences';
 import AppLayout from '@/layouts/AppLayout.vue';
 
 const { t } = useI18n();
 
-interface OltOption { id: number; name: string; host: string; }
-interface Template { id: number; name: string; host: string; port: number; username: string; password: string; is_default: boolean; }
-interface Onu { olt_index: string; model: string; sn: string; pw: string; }
+interface OltOption {
+    id: number;
+    name: string;
+    host: string;
+}
+interface Template {
+    id: number;
+    name: string;
+    host: string;
+    port: number;
+    username: string;
+    password: string;
+    is_default: boolean;
+}
+interface Onu {
+    olt_index: string;
+    model: string;
+    sn: string;
+    pw: string;
+}
 
 const props = defineProps<{ olts: OltOption[]; templates: Template[] }>();
 
@@ -36,31 +61,28 @@ const isAutoScanning = ref(false);
 const hasConnectedOnce = ref(false);
 const lastCheckedAt = ref<Date | null>(null);
 let autoScanTimer: ReturnType<typeof setInterval> | null = null;
-const autoScanDefaultEnabled = useLocalStorage('olt-autoscan-default', true);
-const autoScanSeconds = useLocalStorage('olt-autoscan-interval', 5);
+const {
+    autoScanDefault: autoScanDefaultEnabled,
+    autoScanInterval: autoScanSeconds,
+    excludedSns: prefExcludedSns,
+} = useOltPreferences();
+
+const excludedSnSet = computed(
+    () => new Set(prefExcludedSns.value.map((o) => o.sn.toUpperCase())),
+);
 const knownSnSet = ref<Set<string>>(new Set());
 const isFirstAutoScan = ref(true);
 
-// Exclude list
-const excludedSnSet = ref<Set<string>>(new Set());
 const scannedExcludedOnus = ref<Onu[]>([]);
 const isExcludedPanelOpen = ref(false);
 
-const fetchExcludedOnus = async () => {
-    try {
-        const response = await axios.get('/audit/excluded-onus');
-        if (response.data.status === 'success') {
-            excludedSnSet.value = new Set(
-                response.data.data.map((o: { sn: string }) => o.sn.toUpperCase())
-            );
-        }
-    } catch { /* silent */ }
-};
-
 const trackScannedExcluded = (scannedOnus: Onu[]) => {
-    const newExcluded = scannedOnus.filter(o => excludedSnSet.value.has(o.sn.toUpperCase()));
-    const existingSns = new Set(scannedExcludedOnus.value.map(o => o.sn));
-    const fresh = newExcluded.filter(o => !existingSns.has(o.sn));
+    const newExcluded = scannedOnus.filter((o) =>
+        excludedSnSet.value.has(o.sn.toUpperCase()),
+    );
+    const existingSns = new Set(scannedExcludedOnus.value.map((o) => o.sn));
+    const fresh = newExcluded.filter((o) => !existingSns.has(o.sn));
+
     if (fresh.length > 0) {
         scannedExcludedOnus.value.push(...fresh);
     }
@@ -91,7 +113,10 @@ const isSavedModalOpen = ref(false);
 
 const connectionState = useSessionStorage('olt-audit-connection-state', {
     activeOltId: null as number | null,
-    host: '', port: 23, username: '', password: '',
+    host: '',
+    port: 23,
+    username: '',
+    password: '',
     isConnected: false,
 });
 
@@ -122,8 +147,6 @@ onMounted(async () => {
 
     isInitialLoading.value = false;
 
-    await fetchExcludedOnus();
-
     // Reconnect to OLT if previously connected (without creating a new session)
     if (connectionState.value.isConnected) {
         hasConnectedOnce.value = true;
@@ -133,7 +156,11 @@ onMounted(async () => {
         scanForm.value.password = connectionState.value.password;
         await doLogin(false);
 
-        if (hasActiveSession && auditSession.value && autoScanDefaultEnabled.value) {
+        if (
+            hasActiveSession &&
+            auditSession.value &&
+            autoScanDefaultEnabled.value
+        ) {
             autoScanEnabled.value = true;
             startAutoScan();
         }
@@ -143,7 +170,11 @@ onMounted(async () => {
 const scanForm = ref({
     id: null as number | null,
     name: t('audit.defaultName'),
-    host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE',
+    host: '',
+    port: 23,
+    username: 'admin',
+    password: '',
+    olt_type: 'ZTE',
 });
 
 // Step 1: User clicks "Mulai Sesi Audit" → AuditStartModal opens (name only)
@@ -155,7 +186,12 @@ const handleStartSession = (data: { name: string }) => {
 };
 
 // Step 3: User fills connection → fetch banner
-const fetchBanner = async (data: { host: string; port: number; username: string; password: string }) => {
+const fetchBanner = async (data: {
+    host: string;
+    port: number;
+    username: string;
+    password: string;
+}) => {
     if (!data.host || !data.username || !data.password) {
         toast.error(t('audit.toast.fillAllDetails'));
 
@@ -166,7 +202,10 @@ const fetchBanner = async (data: { host: string; port: number; username: string;
     isFetchingBanner.value = true;
 
     try {
-        const response = await axios.post('/olt/get-banner', { host: data.host, port: data.port });
+        const response = await axios.post('/olt/get-banner', {
+            host: data.host,
+            port: data.port,
+        });
 
         if (response.data.status === 'success') {
             capturedBanner.value = response.data.banner;
@@ -176,7 +215,9 @@ const fetchBanner = async (data: { host: string; port: number; username: string;
             toast.error(response.data.message || t('audit.toast.reachFailed'));
         }
     } catch (error: any) {
-        toast.error(error.response?.data?.message || t('audit.toast.unreachable'));
+        toast.error(
+            error.response?.data?.message || t('audit.toast.unreachable'),
+        );
     } finally {
         isFetchingBanner.value = false;
     }
@@ -188,7 +229,9 @@ const doLogin = async (createSession = true) => {
 
     try {
         const saveResponse = await axios.post('/olt/settings', scanForm.value);
-        const scanResponse = await axios.post('/olt/scan', { olt_id: saveResponse.data.olt_id });
+        const scanResponse = await axios.post('/olt/scan', {
+            olt_id: saveResponse.data.olt_id,
+        });
 
         if (scanResponse.data.status === 'success') {
             onus.value = scanResponse.data.data;
@@ -197,8 +240,10 @@ const doLogin = async (createSession = true) => {
 
             connectionState.value = {
                 activeOltId: scanResponse.data.olt_id,
-                host: scanForm.value.host, port: scanForm.value.port,
-                username: scanForm.value.username, password: scanForm.value.password,
+                host: scanForm.value.host,
+                port: scanForm.value.port,
+                username: scanForm.value.username,
+                password: scanForm.value.password,
                 isConnected: true,
             };
 
@@ -207,17 +252,26 @@ const doLogin = async (createSession = true) => {
             isBannerModalOpen.value = false;
 
             if (createSession) {
-                const olt = props.olts.find(o => o.id === scanResponse.data.olt_id);
-                await createAuditSession(scanResponse.data.olt_id, olt?.name || 'Unknown');
+                const olt = props.olts.find(
+                    (o) => o.id === scanResponse.data.olt_id,
+                );
+                await createAuditSession(
+                    scanResponse.data.olt_id,
+                    olt?.name || 'Unknown',
+                );
                 toast.success(t('audit.toast.loginStarted'));
             } else {
                 toast.success(t('audit.toast.reconnected'));
             }
         } else {
-            toast.error(scanResponse.data.message || t('audit.toast.loginFailed'));
+            toast.error(
+                scanResponse.data.message || t('audit.toast.loginFailed'),
+            );
         }
     } catch (error: any) {
-        toast.error(error.response?.data?.message || t('audit.toast.handshakeFailed'));
+        toast.error(
+            error.response?.data?.message || t('audit.toast.handshakeFailed'),
+        );
     } finally {
         isScanning.value = false;
     }
@@ -249,14 +303,33 @@ const createAuditSession = async (oltId: number, oltName: string) => {
             }
         }
     } catch (error: any) {
-        toast.error(error.response?.data?.message || t('audit.toast.createFailed'));
+        toast.error(
+            error.response?.data?.message || t('audit.toast.createFailed'),
+        );
     }
 };
 
 const disconnect = () => {
-    activeOltId.value = null; onus.value = []; consoleOutput.value = '';
-    scanForm.value = { id: null, name: t('audit.defaultName'), host: '', port: 23, username: 'admin', password: '', olt_type: 'ZTE' };
-    connectionState.value = { activeOltId: null, host: '', port: 23, username: '', password: '', isConnected: false };
+    activeOltId.value = null;
+    onus.value = [];
+    consoleOutput.value = '';
+    scanForm.value = {
+        id: null,
+        name: t('audit.defaultName'),
+        host: '',
+        port: 23,
+        username: 'admin',
+        password: '',
+        olt_type: 'ZTE',
+    };
+    connectionState.value = {
+        activeOltId: null,
+        host: '',
+        port: 23,
+        username: '',
+        password: '',
+        isConnected: false,
+    };
 };
 
 const persistTemporaryOnus = async (onusToSave: Onu[]) => {
@@ -278,8 +351,12 @@ const saveOnusToSession = (onusToSave: Onu[]) => {
         return;
     }
 
-    const existingSns = new Set(auditSession.value.onus.map(o => o.sn));
-    const newOnus = onusToSave.filter(o => !existingSns.has(o.sn) && !excludedSnSet.value.has(o.sn.toUpperCase()));
+    const existingSns = new Set(auditSession.value.onus.map((o) => o.sn));
+    const newOnus = onusToSave.filter(
+        (o) =>
+            !existingSns.has(o.sn) &&
+            !excludedSnSet.value.has(o.sn.toUpperCase()),
+    );
     auditSession.value.onus.push(...newOnus);
     selectedOnus.value.clear();
 
@@ -295,7 +372,7 @@ const addOnuToSession = (onu: Onu) => {
         return;
     }
 
-    if (auditSession.value.onus.some(o => o.sn === onu.sn)) {
+    if (auditSession.value.onus.some((o) => o.sn === onu.sn)) {
         return;
     }
 
@@ -308,7 +385,9 @@ const removeOnuFromSession = (sn: string) => {
         return;
     }
 
-    auditSession.value.onus = auditSession.value.onus.filter(o => o.sn !== sn);
+    auditSession.value.onus = auditSession.value.onus.filter(
+        (o) => o.sn !== sn,
+    );
     selectedOnus.value.delete(sn);
 };
 
@@ -318,10 +397,15 @@ const removeOnuFromSaved = async (sn: string) => {
     }
 
     try {
-        await axios.delete(`/audit/sessions/${auditSession.value.id}/temporary/onu`, {
-            data: { sn },
-        });
-        auditSession.value.onus = auditSession.value.onus.filter(o => o.sn !== sn);
+        await axios.delete(
+            `/audit/sessions/${auditSession.value.id}/temporary/onu`,
+            {
+                data: { sn },
+            },
+        );
+        auditSession.value.onus = auditSession.value.onus.filter(
+            (o) => o.sn !== sn,
+        );
         toast.success(t('audit.toast.onuRemoved'));
     } catch {
         toast.error(t('audit.toast.removeFailed'));
@@ -336,17 +420,26 @@ const savePermanent = async () => {
     isSavingAudit.value = true;
 
     try {
-        const response = await axios.post(`/audit/sessions/${auditSession.value.id}/save`, {
-            onus: auditSession.value.onus,
-        });
+        const response = await axios.post(
+            `/audit/sessions/${auditSession.value.id}/save`,
+            {
+                onus: auditSession.value.onus,
+            },
+        );
 
         if (response.data.status === 'success') {
-            await axios.delete(`/audit/sessions/${auditSession.value.id}/temporary`).catch(() => {});
-            toast.success(`${response.data.data.onu_count} ${t('audit.toast.onuSaved')}`);
+            await axios
+                .delete(`/audit/sessions/${auditSession.value.id}/temporary`)
+                .catch(() => {});
+            toast.success(
+                `${response.data.data.onu_count} ${t('audit.toast.onuSaved')}`,
+            );
             closeAuditSession();
         }
     } catch (error: any) {
-        toast.error(error.response?.data?.message || t('audit.toast.saveFailed'));
+        toast.error(
+            error.response?.data?.message || t('audit.toast.saveFailed'),
+        );
     } finally {
         isSavingAudit.value = false;
     }
@@ -354,8 +447,12 @@ const savePermanent = async () => {
 
 const closeAuditSession = () => {
     if (auditSession.value?.id) {
-        axios.post(`/audit/sessions/${auditSession.value.id}/complete`).catch(() => {});
-        axios.delete(`/audit/sessions/${auditSession.value.id}/temporary`).catch(() => {});
+        axios
+            .post(`/audit/sessions/${auditSession.value.id}/complete`)
+            .catch(() => {});
+        axios
+            .delete(`/audit/sessions/${auditSession.value.id}/temporary`)
+            .catch(() => {});
     }
 
     auditSession.value = null;
@@ -376,11 +473,15 @@ const selectAllOnus = () => {
     if (selectedOnus.value.size === onus.value.length) {
         selectedOnus.value.clear();
     } else {
-        selectedOnus.value = new Set(onus.value.map(o => o.sn));
+        selectedOnus.value = new Set(onus.value.map((o) => o.sn));
     }
 };
 
-const runDiagnostic = async (diag: { label: string; command: string; action: string }) => {
+const runDiagnostic = async (diag: {
+    label: string;
+    command: string;
+    action: string;
+}) => {
     if (!scanForm.value.host) {
         toast.error(t('audit.toast.connectFirst'));
 
@@ -391,7 +492,11 @@ const runDiagnostic = async (diag: { label: string; command: string; action: str
     consoleOutput.value = `Executing: ${diag.command} on ${scanForm.value.host}...\n`;
 
     try {
-        const response = await axios.post('/olt/run-command', { host: scanForm.value.host, command: diag.command, action: diag.action });
+        const response = await axios.post('/olt/run-command', {
+            host: scanForm.value.host,
+            command: diag.command,
+            action: diag.action,
+        });
 
         if (response.data.status === 'success') {
             consoleOutput.value = response.data.output;
@@ -401,7 +506,8 @@ const runDiagnostic = async (diag: { label: string; command: string; action: str
             toast.error(response.data.message || t('common.failed'));
         }
     } catch (error: any) {
-        const msg = error.response?.data?.message || t('audit.toast.connectOltFailed');
+        const msg =
+            error.response?.data?.message || t('audit.toast.connectOltFailed');
         consoleOutput.value += `Error: ${msg}`;
         toast.error(msg);
     } finally {
@@ -415,7 +521,7 @@ const startAutoScan = () => {
     }
 
     isFirstAutoScan.value = true;
-    knownSnSet.value = new Set(auditSession.value?.onus.map(o => o.sn) || []);
+    knownSnSet.value = new Set(auditSession.value?.onus.map((o) => o.sn) || []);
 
     autoScanTimer = setInterval(async () => {
         if (!connectionState.value.isConnected || isScanning.value) {
@@ -425,7 +531,9 @@ const startAutoScan = () => {
         isAutoScanning.value = true;
 
         try {
-            const response = await axios.post('/olt/scan', { olt_id: connectionState.value.activeOltId });
+            const response = await axios.post('/olt/scan', {
+                olt_id: connectionState.value.activeOltId,
+            });
 
             if (response.data.status === 'success') {
                 const scannedOnus: Onu[] = response.data.data;
@@ -435,29 +543,43 @@ const startAutoScan = () => {
 
                 if (auditSession.value) {
                     if (isFirstAutoScan.value) {
-                        const newOnus = scannedOnus.filter(o => !knownSnSet.value.has(o.sn) && !excludedSnSet.value.has(o.sn.toUpperCase()));
+                        const newOnus = scannedOnus.filter(
+                            (o) =>
+                                !knownSnSet.value.has(o.sn) &&
+                                !excludedSnSet.value.has(o.sn.toUpperCase()),
+                        );
 
                         if (newOnus.length > 0) {
-                            newOnus.forEach(o => knownSnSet.value.add(o.sn));
+                            newOnus.forEach((o) => knownSnSet.value.add(o.sn));
                             auditSession.value.onus.push(...newOnus);
                             persistTemporaryOnus(newOnus);
-                            toast.success(`${newOnus.length} ${t('audit.toast.onuAdded')}`);
+                            toast.success(
+                                `${newOnus.length} ${t('audit.toast.onuAdded')}`,
+                            );
                         }
 
                         isFirstAutoScan.value = false;
                     } else {
-                        const newOnus = scannedOnus.filter(o => !knownSnSet.value.has(o.sn) && !excludedSnSet.value.has(o.sn.toUpperCase()));
+                        const newOnus = scannedOnus.filter(
+                            (o) =>
+                                !knownSnSet.value.has(o.sn) &&
+                                !excludedSnSet.value.has(o.sn.toUpperCase()),
+                        );
 
                         if (newOnus.length > 0) {
-                            newOnus.forEach(o => knownSnSet.value.add(o.sn));
+                            newOnus.forEach((o) => knownSnSet.value.add(o.sn));
                             auditSession.value.onus.push(...newOnus);
                             persistTemporaryOnus(newOnus);
-                            toast.success(`${newOnus.length} ${t('audit.toast.newOnuDetected')}`);
+                            toast.success(
+                                `${newOnus.length} ${t('audit.toast.newOnuDetected')}`,
+                            );
                         }
                     }
                 }
             }
-        } catch { /* silent */ } finally {
+        } catch {
+            /* silent */
+        } finally {
             isAutoScanning.value = false;
         }
     }, autoScanSeconds.value * 1000);
@@ -485,13 +607,16 @@ const toggleAutoScan = () => {
     }
 };
 
-watch(() => connectionState.value.isConnected, (connected) => {
-    if (!connected) {
-        autoScanEnabled.value = false;
-        stopAutoScan();
-        lastCheckedAt.value = null;
-    }
-});
+watch(
+    () => connectionState.value.isConnected,
+    (connected) => {
+        if (!connected) {
+            autoScanEnabled.value = false;
+            stopAutoScan();
+            lastCheckedAt.value = null;
+        }
+    },
+);
 
 onUnmounted(() => {
     stopAutoScan();
@@ -504,7 +629,10 @@ defineOptions({ layout: AppLayout });
     <Head :title="t('audit.title')" />
 
     <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
-        <Heading :title="t('audit.heading')" :description="t('audit.description')" />
+        <Heading
+            :title="t('audit.heading')"
+            :description="t('audit.description')"
+        />
 
         <!-- Step 1: Name-only modal -->
         <AuditStartModal
@@ -533,7 +661,7 @@ defineOptions({ layout: AppLayout });
         <!-- Loading: checking session -->
         <div
             v-if="isInitialLoading"
-            class="flex flex-col items-center justify-center rounded-xl border border-dashed border-sidebar-border/70 dark:border-sidebar-border py-24 gap-3 text-muted-foreground"
+            class="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-sidebar-border/70 py-24 text-muted-foreground dark:border-sidebar-border"
         >
             <Spinner class="h-8 w-8" />
             <p class="text-sm">{{ t('common.loading') }}</p>
@@ -542,7 +670,7 @@ defineOptions({ layout: AppLayout });
         <!-- Placeholder: belum ada sesi aktif -->
         <div
             v-else-if="!auditSession"
-            class="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-sidebar-border/70 dark:border-sidebar-border py-24 gap-3 text-muted-foreground cursor-pointer hover:border-primary/50 hover:text-foreground transition-colors"
+            class="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-sidebar-border/70 py-24 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground dark:border-sidebar-border"
             @click="isAuditModalOpen = true"
         >
             <ClipboardCheck class="h-10 w-10" />
@@ -560,19 +688,39 @@ defineOptions({ layout: AppLayout });
                 @show-saved="isSavedModalOpen = true"
             />
 
-            <div v-if="activeOltId" class="flex items-center gap-3 text-sm text-emerald-600 font-medium">
+            <div
+                v-if="activeOltId"
+                class="flex items-center gap-3 text-sm font-medium text-emerald-600"
+            >
                 <MonitorPlay class="h-4 w-4" />
                 {{ t('audit.connectedTo') }} {{ scanForm.host }}
-                <span v-if="lastCheckedAt" class="text-muted-foreground font-normal flex items-center gap-1">
+                <span
+                    v-if="lastCheckedAt"
+                    class="flex items-center gap-1 font-normal text-muted-foreground"
+                >
                     <Clock class="h-3 w-3" />
-                    {{ t('audit.lastScan') }} {{ lastCheckedAt.toLocaleTimeString() }}
+                    {{ t('audit.lastScan') }}
+                    {{ lastCheckedAt.toLocaleTimeString() }}
                 </span>
-                <Button variant="ghost" size="sm" class="text-red-500 hover:text-red-600 h-7 px-2" @click="disconnect">
-                    <X class="h-3 w-3 mr-1" /> {{ t('audit.disconnect') }}
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    class="h-7 px-2 text-red-500 hover:text-red-600"
+                    @click="disconnect"
+                >
+                    <X class="mr-1 h-3 w-3" /> {{ t('audit.disconnect') }}
                 </Button>
             </div>
-            <label v-if="hasConnectedOnce && connectionState.isConnected" class="flex items-center gap-2 text-sm cursor-pointer select-none">
-                <input type="checkbox" :checked="autoScanEnabled" @change="toggleAutoScan" class="h-4 w-4 rounded border-muted-foreground accent-primary" />
+            <label
+                v-if="hasConnectedOnce && connectionState.isConnected"
+                class="flex cursor-pointer items-center gap-2 text-sm select-none"
+            >
+                <input
+                    type="checkbox"
+                    :checked="autoScanEnabled"
+                    @change="toggleAutoScan"
+                    class="h-4 w-4 rounded border-muted-foreground accent-primary"
+                />
                 {{ t('audit.autoScan', { interval: autoScanSeconds }) }}
             </label>
 
@@ -600,38 +748,85 @@ defineOptions({ layout: AppLayout });
             />
 
             <!-- Scanned but excluded ONUs section -->
-            <div v-if="scannedExcludedOnus.length > 0" class="flex flex-col gap-2">
+            <div
+                v-if="scannedExcludedOnus.length > 0"
+                class="flex flex-col gap-2"
+            >
                 <button
-                    class="flex items-center justify-between rounded-lg border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors cursor-pointer select-none"
+                    class="flex cursor-pointer items-center justify-between rounded-lg border border-dashed border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700 transition-colors select-none hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/30"
                     @click="isExcludedPanelOpen = !isExcludedPanelOpen"
                 >
                     <span class="flex items-center gap-2">
                         <ShieldOff class="h-4 w-4" />
-                        {{ t('audit.excludedOnus.title', { count: scannedExcludedOnus.length }) }}
+                        {{
+                            t('audit.excludedOnus.title', {
+                                count: scannedExcludedOnus.length,
+                            })
+                        }}
                     </span>
-                    <ChevronDown class="h-4 w-4 transition-transform" :class="isExcludedPanelOpen ? 'rotate-180' : ''" />
+                    <ChevronDown
+                        class="h-4 w-4 transition-transform"
+                        :class="isExcludedPanelOpen ? 'rotate-180' : ''"
+                    />
                 </button>
-                <div v-if="isExcludedPanelOpen" class="rounded-lg border border-sidebar-border/70 dark:border-sidebar-border overflow-hidden">
+                <div
+                    v-if="isExcludedPanelOpen"
+                    class="overflow-hidden rounded-lg border border-sidebar-border/70 dark:border-sidebar-border"
+                >
                     <table class="w-full text-sm">
                         <thead>
-                            <tr class="border-b border-sidebar-border/70 bg-muted/50 dark:border-sidebar-border">
-                                <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.oltIndex') }}</th>
-                                <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.model') }}</th>
-                                <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.serialNumber') }}</th>
-                                <th class="h-10 px-4 text-left align-middle font-medium text-muted-foreground">{{ t('onuTable.password') }}</th>
+                            <tr
+                                class="border-b border-sidebar-border/70 bg-muted/50 dark:border-sidebar-border"
+                            >
+                                <th
+                                    class="h-10 px-4 text-left align-middle font-medium text-muted-foreground"
+                                >
+                                    {{ t('onuTable.oltIndex') }}
+                                </th>
+                                <th
+                                    class="h-10 px-4 text-left align-middle font-medium text-muted-foreground"
+                                >
+                                    {{ t('onuTable.model') }}
+                                </th>
+                                <th
+                                    class="h-10 px-4 text-left align-middle font-medium text-muted-foreground"
+                                >
+                                    {{ t('onuTable.serialNumber') }}
+                                </th>
+                                <th
+                                    class="h-10 px-4 text-left align-middle font-medium text-muted-foreground"
+                                >
+                                    {{ t('onuTable.password') }}
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="onu in scannedExcludedOnus" :key="onu.sn" class="border-b border-sidebar-border/70 last:border-0 dark:border-sidebar-border bg-muted/20 opacity-60">
-                                <td class="px-4 py-2 align-middle">{{ onu.olt_index }}</td>
-                                <td class="px-4 py-2 align-middle">{{ onu.model }}</td>
+                            <tr
+                                v-for="onu in scannedExcludedOnus"
+                                :key="onu.sn"
+                                class="border-b border-sidebar-border/70 bg-muted/20 opacity-60 last:border-0 dark:border-sidebar-border"
+                            >
+                                <td class="px-4 py-2 align-middle">
+                                    {{ onu.olt_index }}
+                                </td>
+                                <td class="px-4 py-2 align-middle">
+                                    {{ onu.model }}
+                                </td>
                                 <td class="px-4 py-2 align-middle font-mono">
                                     {{ onu.sn }}
-                                    <span class="ml-2 inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
-                                        {{ t('olt.settings.excludeOnus.excluded') }}
+                                    <span
+                                        class="ml-2 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"
+                                    >
+                                        {{
+                                            t(
+                                                'olt.settings.excludeOnus.excluded',
+                                            )
+                                        }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-2 align-middle font-mono">{{ onu.pw }}</td>
+                                <td class="px-4 py-2 align-middle font-mono">
+                                    {{ onu.pw }}
+                                </td>
                             </tr>
                         </tbody>
                     </table>

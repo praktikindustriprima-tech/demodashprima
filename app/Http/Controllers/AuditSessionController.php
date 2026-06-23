@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Requests\AuditSessionDeleteRequest;
 use App\Models\AuditSession;
 use App\Models\AuditSessionOnu;
-use App\Models\AuditSessionSavedOnu;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -198,7 +197,7 @@ class AuditSessionController extends Controller
         $newOnus = [];
 
         foreach ($request->onus as $onu) {
-            if (!in_array($onu['sn'], $existingSns)) {
+            if (! in_array($onu['sn'], $existingSns)) {
                 $newOnus[] = [
                     'audit_session_id' => $session->id,
                     'olt_index' => $onu['olt_index'],
@@ -213,7 +212,7 @@ class AuditSessionController extends Controller
             }
         }
 
-        if (!empty($newOnus)) {
+        if (! empty($newOnus)) {
             $session->savedOnus()->insert($newOnus);
         }
 

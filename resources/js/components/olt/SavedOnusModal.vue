@@ -55,7 +55,9 @@ const printTable = () => {
 
 <template>
     <Dialog :open="open" @update:open="emit('update:open', $event)">
-        <DialogContent class="flex max-h-[85vh] w-[90vw] max-w-4xl flex-col">
+        <DialogContent
+            class="flex max-h-[85vh] w-[90vw] flex-col sm:w-full sm:max-w-4xl"
+        >
             <DialogHeader>
                 <DialogTitle class="flex items-center justify-between">
                     <span
