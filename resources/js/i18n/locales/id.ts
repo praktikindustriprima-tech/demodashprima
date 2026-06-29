@@ -190,6 +190,8 @@ export default {
             },
             confirm: {
                 deleteTemplate: 'Hapus templat ini?',
+                deleteTemplateDescription: 'Templat yang dihapus tidak dapat dikembalikan.',
+                confirmDelete: 'Hapus',
             },
             excludeOnus: {
                 title: 'Daftar SN yang Dikecualikan',

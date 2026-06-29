@@ -37,6 +37,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Spinner } from '@/components/ui/spinner';
 import { useOltPreferences } from '@/composables/useOltPreferences';
 import AppLayout from '@/layouts/AppLayout.vue';
 
@@ -65,6 +75,8 @@ const templateForm = useForm({
 const defaultForm = useForm({});
 const deleteForm = useForm({});
 const editingId = ref<number | null>(null);
+const isDeleteModalOpen = ref(false);
+const deleteTargetId = ref<number | null>(null);
 
 const submitTemplate = () => {
     if (editingId.value) {
@@ -103,12 +115,21 @@ const cancelEdit = () => {
     templateForm.reset();
 };
 const deleteTemplate = (id: number) => {
-    if (confirm(t('olt.settings.confirm.deleteTemplate'))) {
-        deleteForm.delete(`/olt/templates/${id}`, {
-            onSuccess: () =>
-                toast.success(t('olt.settings.toast.templateDeleted')),
-        });
-    }
+    deleteTargetId.value = id;
+    isDeleteModalOpen.value = true;
+};
+
+const confirmDeleteTemplate = () => {
+    const id = deleteTargetId.value;
+    if (!id) return;
+
+    deleteForm.delete(`/olt/templates/${id}`, {
+        onSuccess: () => {
+            toast.success(t('olt.settings.toast.templateDeleted'));
+            isDeleteModalOpen.value = false;
+            deleteTargetId.value = null;
+        },
+    });
 };
 const setDefault = (id: number) => {
     defaultForm.patch(`/olt/templates/${id}/default`, {
@@ -623,4 +644,31 @@ defineOptions({ layout: AppLayout });
             {{ t('olt.settings.securityNoteDesc') }}
         </div>
     </div>
+
+    <Dialog :open="isDeleteModalOpen" @update:open="isDeleteModalOpen = $event">
+        <DialogContent>
+            <DialogHeader class="space-y-3">
+                <DialogTitle>{{ t('olt.settings.confirm.deleteTemplate') }}</DialogTitle>
+                <DialogDescription>
+                    {{ t('olt.settings.confirm.deleteTemplateDescription') }}
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter class="gap-2">
+                <DialogClose as-child>
+                    <Button variant="secondary" :disabled="deleteForm.processing">
+                        {{ t('common.cancel') }}
+                    </Button>
+                </DialogClose>
+                <Button
+                    variant="destructive"
+                    :disabled="deleteForm.processing"
+                    @click="confirmDeleteTemplate"
+                >
+                    <Spinner v-if="deleteForm.processing" class="mr-2" />
+                    <Trash2 v-else class="mr-2 h-4 w-4" />
+                    {{ t('olt.settings.confirm.confirmDelete') }}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 </template>

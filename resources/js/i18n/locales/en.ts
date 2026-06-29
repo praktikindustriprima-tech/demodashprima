@@ -190,6 +190,8 @@ export default {
             },
             confirm: {
                 deleteTemplate: 'Delete this template?',
+                deleteTemplateDescription: 'Deleted templates cannot be restored.',
+                confirmDelete: 'Delete',
             },
             excludeOnus: {
                 title: 'Exclude Serial Numbers',
